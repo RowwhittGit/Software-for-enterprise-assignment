@@ -25,3 +25,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Local API test client files
+insomnia_collection.json
+*.insomnia.json
