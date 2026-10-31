@@ -9,13 +9,20 @@ let currentPuzzleId = null;
 let isGameActive = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  const startScreen = document.getElementById('start-screen');
-  const playArea = document.getElementById('play-area');
   const btnStart = document.getElementById('btn-start-game');
+  const answerForm = document.getElementById('answer-form');
 
   if (btnStart) {
     btnStart.addEventListener('click', () => {
       startGame();
+    });
+  }
+
+  // Handle answer submission via Enter key or Submit button click
+  if (answerForm) {
+    answerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleAnswerSubmit();
     });
   }
 });
@@ -32,6 +39,7 @@ function startGame() {
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
 
+  hideFeedback();
   isGameActive = true;
 
   fetchAndDisplayPuzzle();
@@ -81,8 +89,92 @@ async function fetchAndDisplayPuzzle() {
   }
 }
 
+/**
+ * Validates and submits the player's answer to the server for verification
+ */
+async function handleAnswerSubmit() {
+  if (!isGameActive || !currentPuzzleId) return;
+
+  const answerInput = document.getElementById('answer-input');
+  const submitBtn = document.getElementById('btn-submit-answer');
+  const rawAnswer = answerInput.value.trim();
+
+  if (rawAnswer === '') {
+    showFeedback('Please enter a digit from 0 to 9.', 'wrong');
+    return;
+  }
+
+  const answer = parseInt(rawAnswer, 10);
+  if (isNaN(answer) || answer < 0 || answer > 9) {
+    showFeedback('Answer must be a single digit (0-9).', 'wrong');
+    return;
+  }
+
+  // Disable controls during server roundtrip
+  answerInput.disabled = true;
+  submitBtn.disabled = true;
+
+  try {
+    const result = await window.API.jsonFetch('/api/puzzle/answer', {
+      method: 'POST',
+      body: {
+        puzzleId: currentPuzzleId,
+        answer,
+      },
+    });
+
+    if (result.correct) {
+      showFeedback('Correct! Well done! 🎉', 'correct');
+    } else if (result.timedOut) {
+      showFeedback("Time's up! ⏰", 'wrong');
+    } else {
+      showFeedback('Wrong answer! ❌', 'wrong');
+    }
+
+    // Load next puzzle after short feedback pause
+    setTimeout(() => {
+      hideFeedback();
+      if (isGameActive) {
+        fetchAndDisplayPuzzle();
+      }
+    }, 900);
+  } catch (err) {
+    console.error('Error submitting answer:', err.message);
+    showFeedback('Error submitting answer. Loading next puzzle...', 'wrong');
+    setTimeout(() => {
+      hideFeedback();
+      if (isGameActive) fetchAndDisplayPuzzle();
+    }, 1000);
+  }
+}
+
+/**
+ * Displays feedback banner above the puzzle image
+ */
+function showFeedback(message, type) {
+  const feedback = document.getElementById('game-feedback');
+  if (!feedback) return;
+
+  feedback.textContent = message;
+  feedback.className = `game-feedback feedback-${type}`;
+  feedback.classList.remove('hidden');
+}
+
+/**
+ * Hides feedback banner
+ */
+function hideFeedback() {
+  const feedback = document.getElementById('game-feedback');
+  if (!feedback) return;
+
+  feedback.classList.add('hidden');
+  feedback.textContent = '';
+}
+
 // Export for module accessibility
 window.Game = {
   startGame,
   fetchAndDisplayPuzzle,
+  handleAnswerSubmit,
+  showFeedback,
 };
