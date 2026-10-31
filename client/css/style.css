@@ -418,6 +418,18 @@ body {
   color: #0369a1;
   font-size: 1.1rem;
   font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+
+.timer-number.timer-warning {
+  color: #dc2626;
+  font-weight: 800;
+  animation: timer-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes timer-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
 }
 
 /* Puzzle Display Box */
