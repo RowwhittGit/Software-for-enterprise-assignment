@@ -8,6 +8,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
 const puzzleRoutes = require('./routes/puzzle.routes');
+const scoreRoutes = require('./routes/score.routes');
+const { getLeaderboard } = require('./controllers/score.controller');
 
 const app = express();
 
@@ -28,6 +30,12 @@ app.use('/api/auth', authRoutes);
 
 // Mount puzzle API routes
 app.use('/api/puzzle', puzzleRoutes);
+
+// Mount scores API routes
+app.use('/api/scores', scoreRoutes);
+
+// Public leaderboard endpoint (accessible without login)
+app.get('/api/leaderboard', getLeaderboard);
 
 // Health check endpoint to verify server status without touching the database
 app.get('/api/health', (req, res) => {
