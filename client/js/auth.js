@@ -88,7 +88,7 @@ async function initGameAuth() {
 }
 
 /**
- * Initializes tab switching and event handlers on login.html
+ * Initializes tab switching, password toggles, and inline validation on login.html
  */
 function initAuthPage() {
   const tabLogin = document.getElementById('tab-login');
@@ -113,6 +113,7 @@ function initAuthPage() {
 
     loginForm.classList.remove('hidden');
     registerForm.classList.add('hidden');
+    clearFieldErrors();
     hideAlert();
   });
 
@@ -124,12 +125,67 @@ function initAuthPage() {
 
     registerForm.classList.remove('hidden');
     loginForm.classList.add('hidden');
+    clearFieldErrors();
     hideAlert();
+  });
+
+  // Password visibility toggle buttons
+  const toggleBtns = document.querySelectorAll('.toggle-password-btn');
+  toggleBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+        btn.setAttribute('aria-label', 'Hide password');
+        btn.setAttribute('title', 'Hide password');
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+        btn.setAttribute('aria-label', 'Show password');
+        btn.setAttribute('title', 'Show password');
+      }
+    });
+  });
+
+  // Inline field validation display helpers
+  function showFieldError(inputId, errorId, message) {
+    const input = document.getElementById(inputId);
+    const errorEl = document.getElementById(errorId);
+    if (input) input.classList.add('is-invalid');
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  function clearFieldErrors() {
+    document.querySelectorAll('.form-input').forEach((inp) => inp.classList.remove('is-invalid'));
+    document.querySelectorAll('.form-error-msg').forEach((err) => {
+      err.textContent = '';
+      err.classList.add('hidden');
+    });
+  }
+
+  // Clear error state dynamically as the user types
+  document.querySelectorAll('.form-input').forEach((input) => {
+    input.addEventListener('input', () => {
+      input.classList.remove('is-invalid');
+      const errEl = document.getElementById(`err-${input.id}`);
+      if (errEl) {
+        errEl.textContent = '';
+        errEl.classList.add('hidden');
+      }
+    });
   });
 
   // Login form submission handler
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearFieldErrors();
     hideAlert();
 
     const identifierInput = document.getElementById('login-identifier');
@@ -139,10 +195,17 @@ function initAuthPage() {
     const identifier = identifierInput.value.trim();
     const password = passwordInput.value;
 
-    if (!identifier || !password) {
-      showAlert('Please enter your username/email and password.', 'error');
-      return;
+    let hasError = false;
+    if (!identifier) {
+      showFieldError('login-identifier', 'err-login-identifier', 'Please enter your username or email address.');
+      hasError = true;
     }
+    if (!password) {
+      showFieldError('login-password', 'err-login-password', 'Please enter your password.');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setButtonLoading(submitBtn, true, 'Signing in...');
 
@@ -183,6 +246,7 @@ function initAuthPage() {
   // Registration form submission handler
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearFieldErrors();
     hideAlert();
 
     const usernameInput = document.getElementById('register-username');
@@ -194,21 +258,25 @@ function initAuthPage() {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
-    // Client-side validations
+    let hasError = false;
+
+    // Client-side inline validations
     if (username.length < 3 || username.length > 30) {
-      showAlert('Username must be between 3 and 30 characters.', 'error');
-      return;
+      showFieldError('register-username', 'err-register-username', 'Username must be between 3 and 30 characters.');
+      hasError = true;
     }
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      showAlert('Please provide a valid email address.', 'error');
-      return;
+      showFieldError('register-email', 'err-register-email', 'Please provide a valid email address.');
+      hasError = true;
     }
 
     if (password.length < 6) {
-      showAlert('Password must be at least 6 characters long.', 'error');
-      return;
+      showFieldError('register-password', 'err-register-password', 'Password must be at least 6 characters long.');
+      hasError = true;
     }
+
+    if (hasError) return;
 
     setButtonLoading(submitBtn, true, 'Creating account...');
 

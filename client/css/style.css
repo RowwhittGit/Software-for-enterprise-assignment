@@ -310,6 +310,10 @@ img {
   border-radius: var(--radius-lg);
 }
 
+.btn-block {
+  width: 100%;
+}
+
 /* Badges */
 .badge {
   display: inline-flex;
