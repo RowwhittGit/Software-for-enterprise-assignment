@@ -11,6 +11,7 @@ let lives = 3;
 let currentScore = 0;
 let correctAnswersCount = 0;
 let puzzleStartTime = null;
+let isRoundProcessing = false;
 
 // Difficulty configuration (time limit in seconds and score multiplier)
 const DIFFICULTY_CONFIG = {
@@ -87,6 +88,7 @@ function startGame() {
   lives = 3;
   currentScore = 0;
   correctAnswersCount = 0;
+  isRoundProcessing = false;
   updateLivesDisplay();
   updateScoreDisplay();
   hideFeedback();
@@ -135,10 +137,35 @@ function updateTimerDisplay(secondsLeft) {
 }
 
 /**
- * Handles round timeout event when countdown expires
+ * Handles round timeout event when countdown expires:
+ * Deducts one life, shows alert feedback, and advances to next puzzle or ends game.
  */
 function handleRoundTimeout() {
-  // Stub to be implemented in next commit
+  if (!isGameActive || isRoundProcessing) return;
+  isRoundProcessing = true;
+
+  // Disable inputs on timeout
+  const answerInput = document.getElementById('answer-input');
+  const submitBtn = document.getElementById('btn-submit-answer');
+  if (answerInput) answerInput.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
+
+  // Deduct one life for running out of time
+  lives--;
+  updateLivesDisplay();
+
+  showFeedback("Time's up! ⏰ (-1 life)", 'wrong');
+
+  if (lives <= 0) {
+    setTimeout(() => {
+      endGame();
+    }, 1000);
+  } else {
+    setTimeout(() => {
+      hideFeedback();
+      if (isGameActive) fetchAndDisplayPuzzle();
+    }, 900);
+  }
 }
 
 /**
@@ -167,6 +194,7 @@ async function fetchAndDisplayPuzzle() {
 
     if (puzzleImg) {
       puzzleImg.onload = () => {
+        isRoundProcessing = false;
         if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
         puzzleImg.classList.remove('hidden');
         if (answerInput) {
@@ -211,12 +239,7 @@ function calculatePointsEarned() {
  * Validates and submits the player's answer to the server for verification
  */
 async function handleAnswerSubmit() {
-  if (!isGameActive || !currentPuzzleId) return;
-
-  // Stop timer immediately on answer submission
-  if (window.Timer) {
-    window.Timer.stopTimer();
-  }
+  if (!isGameActive || !currentPuzzleId || isRoundProcessing) return;
 
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
@@ -231,6 +254,14 @@ async function handleAnswerSubmit() {
   if (isNaN(answer) || answer < 0 || answer > 9) {
     showFeedback('Answer must be a single digit (0-9).', 'wrong');
     return;
+  }
+
+  // Mark round as processing to prevent simultaneous timeout trigger
+  isRoundProcessing = true;
+
+  // Stop timer immediately on answer submission
+  if (window.Timer) {
+    window.Timer.stopTimer();
   }
 
   // Disable controls during server roundtrip
@@ -292,6 +323,7 @@ async function handleAnswerSubmit() {
  */
 function endGame() {
   isGameActive = false;
+  isRoundProcessing = false;
 
   // Stop timer and remove warning indicators
   if (window.Timer) {
