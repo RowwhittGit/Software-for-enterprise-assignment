@@ -5,7 +5,9 @@
 
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
 const tokenService = require('../services/tokenService');
+const config = require('../config/env');
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 
@@ -82,7 +84,8 @@ async function register(req, res) {
 
 /**
  * Handles POST /api/auth/login
- * Verifies credentials, compares password hash via bcrypt, and issues a JWT access token.
+ * Verifies credentials, generates a stateless JWT access token in the response body,
+ * and sets an opaque refresh token in a secure httpOnly cookie with its SHA-256 hash stored in MongoDB.
  */
 async function login(req, res) {
   try {
@@ -114,8 +117,23 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Invalid username/email or password' });
     }
 
-    // Generate short-lived stateless JWT access token
+    // Generate short-lived stateless JWT access token (15m)
     const accessToken = tokenService.generateAccessToken(user);
+
+    // Generate opaque refresh token (64-byte random string)
+    const rawRefreshToken = tokenService.generateRefreshToken();
+    const tokenHash = tokenService.hashToken(rawRefreshToken);
+    const expiresAt = new Date(Date.now() + (config.refreshTokenTtlDays || 7) * 24 * 60 * 60 * 1000);
+
+    // Save SHA-256 hash in MongoDB Atlas (TTL index will auto-delete expired records)
+    await RefreshToken.create({
+      user: user._id,
+      tokenHash,
+      expiresAt,
+    });
+
+    // Send raw refresh token as an httpOnly, SameSite=Strict cookie
+    res.cookie('refreshToken', rawRefreshToken, tokenService.getRefreshTokenCookieOptions());
 
     res.status(200).json({
       message: 'Login successful',
