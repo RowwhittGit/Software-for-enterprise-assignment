@@ -1,17 +1,82 @@
 /**
- * Purpose: Authentication logic and UI event handling for login/registration
+ * Purpose: Authentication logic and UI event handling for login/registration and game session
  * AI-assisted (Antigravity) — reviewed by student
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Check if we are on the login/registration page
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
 
   if (loginForm && registerForm) {
     initAuthPage();
+  } else {
+    // Authenticated game page shell
+    initGameAuth();
   }
 });
+
+/**
+ * Initializes authentication check, profile display, and logout on the main game dashboard
+ */
+async function initGameAuth() {
+  const usernameEl = document.getElementById('current-username');
+  const highScoreEl = document.getElementById('current-high-score');
+  const logoutBtn = document.getElementById('btn-logout');
+
+  // Optimistically display cached username from sessionStorage while verifying with server
+  const cachedUsername = sessionStorage.getItem('banana_username');
+  const cachedHighScore = sessionStorage.getItem('banana_high_score');
+  if (cachedUsername && usernameEl) usernameEl.textContent = cachedUsername;
+  if (cachedHighScore && highScoreEl) highScoreEl.textContent = cachedHighScore;
+
+  // Verify active authentication state:
+  // If in-memory token is absent (e.g. after page refresh), attempt silent cookie refresh
+  if (!window.API.getAccessToken()) {
+    const refreshed = await window.API.attemptTokenRefresh();
+
+    if (!refreshed) {
+      // No active refresh token cookie: redirect to login
+      window.location.href = '/login.html';
+      return;
+    }
+  }
+
+  // Fetch verified player profile from /api/auth/me
+  try {
+    const data = await window.API.jsonFetch('/api/auth/me');
+
+    if (data && data.user) {
+      if (usernameEl) usernameEl.textContent = data.user.username;
+      if (highScoreEl) highScoreEl.textContent = data.user.highScore;
+
+      sessionStorage.setItem('banana_username', data.user.username);
+      sessionStorage.setItem('banana_high_score', data.user.highScore);
+    }
+  } catch (err) {
+    console.warn('Failed to verify session profile:', err.message);
+    window.location.href = '/login.html';
+    return;
+  }
+
+  // Logout button event listener
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      logoutBtn.textContent = 'Logging out...';
+
+      try {
+        await window.API.apiFetch('/api/auth/logout', { method: 'POST' });
+      } catch (err) {
+        console.warn('Logout request warning:', err.message);
+      } finally {
+        window.API.clearAccessToken();
+        sessionStorage.removeItem('banana_username');
+        sessionStorage.removeItem('banana_high_score');
+        window.location.href = '/login.html';
+      }
+    });
+  }
+}
 
 /**
  * Initializes tab switching and event handlers on login.html
@@ -22,6 +87,13 @@ function initAuthPage() {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const alertBox = document.getElementById('auth-alert');
+
+  // If user already has an active session cookie, redirect directly to game page
+  window.API.attemptTokenRefresh().then((hasActiveSession) => {
+    if (hasActiveSession) {
+      window.location.href = '/index.html';
+    }
+  });
 
   // Tab switching logic
   tabLogin.addEventListener('click', () => {
@@ -91,7 +163,7 @@ function initAuthPage() {
       // Redirect to main game page
       setTimeout(() => {
         window.location.href = '/index.html';
-      }, 500);
+      }, 400);
     } catch (err) {
       showAlert(err.message, 'error');
     } finally {
@@ -162,9 +234,8 @@ function initAuthPage() {
 
         setTimeout(() => {
           window.location.href = '/index.html';
-        }, 500);
+        }, 400);
       } else {
-        // Fallback: switch to login tab with username pre-filled
         tabLogin.click();
         identifierInput.value = username;
       }
