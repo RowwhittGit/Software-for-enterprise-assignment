@@ -79,7 +79,10 @@ function startGame() {
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
 
-  // Update HUD difficulty label and timer display
+  // Reset timer module and HUD indicators
+  if (window.Timer) {
+    window.Timer.resetTimer();
+  }
   const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
   if (difficultyBadge) difficultyBadge.textContent = config.label;
   updateTimerDisplay(config.timeLimit);
@@ -187,6 +190,13 @@ async function fetchAndDisplayPuzzle() {
   }
   if (submitBtn) submitBtn.disabled = true;
 
+  // Stop any active timer and reset HUD display to starting time limit
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
+  const roundConfig = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+  updateTimerDisplay(roundConfig.timeLimit);
+
   try {
     const data = await window.API.jsonFetch(`/api/puzzle?difficulty=${currentDifficulty}`);
 
@@ -218,6 +228,9 @@ async function fetchAndDisplayPuzzle() {
     }
   } catch (err) {
     console.error('Failed to load puzzle:', err.message);
+    if (window.Timer) {
+      window.Timer.stopTimer();
+    }
     if (puzzleSpinner) {
       puzzleSpinner.textContent = 'Failed to load puzzle. Please check your connection and refresh.';
     }
@@ -375,6 +388,13 @@ function hideFeedback() {
   feedback.classList.add('hidden');
   feedback.textContent = '';
 }
+
+// Clean up timer intervals if player navigates away or closes page
+window.addEventListener('beforeunload', () => {
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
+});
 
 // Export for module accessibility
 window.Game = {
