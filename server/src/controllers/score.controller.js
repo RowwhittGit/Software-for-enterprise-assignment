@@ -4,9 +4,10 @@
  */
 
 const Score = require('../models/Score');
+const User = require('../models/User');
 
 /**
- * Saves a completed game score for the authenticated user
+ * Saves a completed game score for the authenticated user and updates personal best
  * POST /api/scores
  */
 async function saveScore(req, res) {
@@ -42,6 +43,18 @@ async function saveScore(req, res) {
 
     await newScore.save();
 
+    // Check and update user's personal high score if beaten
+    const user = await User.findById(userId);
+    let isNewHighScore = false;
+    let personalBest = user ? (user.highScore || 0) : 0;
+
+    if (user && score > personalBest) {
+      user.highScore = score;
+      await user.save();
+      isNewHighScore = true;
+      personalBest = score;
+    }
+
     return res.status(201).json({
       message: 'Score saved successfully',
       score: {
@@ -51,6 +64,8 @@ async function saveScore(req, res) {
         difficulty: newScore.difficulty,
         createdAt: newScore.createdAt,
       },
+      isNewHighScore,
+      highScore: personalBest,
     });
   } catch (error) {
     console.error('Error saving score:', error.message);
