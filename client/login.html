@@ -6,8 +6,110 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Banana Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In / Register - Banana Game</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-header">
+      <span class="auth-icon">🍌</span>
+      <h1>Banana Math Quest</h1>
+      <p class="auth-subtitle">Challenge your mind with visual math puzzles</p>
+    </div>
+
+    <!-- Alert / notification messages -->
+    <div id="auth-alert" class="alert hidden" role="alert"></div>
+
+    <!-- Tab navigation -->
+    <div class="auth-tabs" role="tablist">
+      <button id="tab-login" class="tab-btn active" role="tab" aria-selected="true" type="button">Sign In</button>
+      <button id="tab-register" class="tab-btn" role="tab" aria-selected="false" type="button">Create Account</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="auth-form" novalidate>
+      <div class="form-group">
+        <label for="login-identifier">Username or Email</label>
+        <input
+          type="text"
+          id="login-identifier"
+          name="identifier"
+          placeholder="e.g. player1 or player@example.com"
+          required
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input
+          type="password"
+          id="login-password"
+          name="password"
+          placeholder="••••••••"
+          required
+          autocomplete="current-password"
+        >
+      </div>
+
+      <button type="submit" id="btn-login-submit" class="btn btn-primary btn-block">
+        Sign In
+      </button>
+    </form>
+
+    <!-- Registration Form (hidden by default) -->
+    <form id="register-form" class="auth-form hidden" novalidate>
+      <div class="form-group">
+        <label for="register-username">Username</label>
+        <input
+          type="text"
+          id="register-username"
+          name="username"
+          placeholder="Choose a player name (3-30 chars)"
+          required
+          minlength="3"
+          maxlength="30"
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="register-email">Email Address</label>
+        <input
+          type="email"
+          id="register-email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="register-password">Password</label>
+        <input
+          type="password"
+          id="register-password"
+          name="password"
+          placeholder="At least 6 characters"
+          required
+          minlength="6"
+          autocomplete="new-password"
+        >
+      </div>
+
+      <button type="submit" id="btn-register-submit" class="btn btn-primary btn-block">
+        Create Account
+      </button>
+    </form>
+
+    <footer class="auth-footer">
+      <small>CIS046-3 Software for Enterprise Assignment</small>
+    </footer>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>

@@ -1,13 +1,57 @@
 <!--
-  Purpose: Main game page structure
+  Purpose: Main game page structure and dashboard shell
   AI-assisted (Antigravity) — reviewed by student
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Banana Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banana Math Quest</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <span class="brand-icon">🍌</span>
+        <span class="brand-text">Banana Math Quest</span>
+      </div>
+
+      <div class="nav-user">
+        <span class="user-greeting">Welcome, <strong id="current-username">Player</strong></span>
+        <span class="user-high-score">Best: <strong id="current-high-score">0</strong> pts</span>
+        <button id="btn-logout" class="btn btn-secondary btn-sm" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="main-content">
+    <div class="game-dashboard">
+      <!-- Section placeholder for Step 7 (Core Gameplay) & Step 8 (Timer) -->
+      <section id="game-arena" class="card arena-card">
+        <div class="arena-welcome">
+          <h2>Ready to Play?</h2>
+          <p>Solve timed math puzzles generated from the Banana API and compete for the top score.</p>
+          <div id="game-controls-placeholder" class="controls-placeholder">
+            <span class="badge badge-info">Game Arena ready for launch</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section placeholder for Step 9 & 10 (Scores & Leaderboard) -->
+      <aside id="scoreboard-sidebar" class="card sidebar-card">
+        <h3>Top Players</h3>
+        <p class="text-muted">Leaderboard will update once games are completed.</p>
+        <div id="leaderboard-placeholder"></div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Core Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
