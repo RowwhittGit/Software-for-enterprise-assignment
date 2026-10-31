@@ -405,8 +405,11 @@ async function submitGameScore() {
       sessionStorage.setItem('banana_high_score', result.highScore);
     }
 
-    // Refresh player's recent scores history
+    // Refresh player's recent scores history and global leaderboard
     await loadUserScores();
+    if (window.Leaderboard && typeof window.Leaderboard.fetchAndRenderLeaderboard === 'function') {
+      window.Leaderboard.fetchAndRenderLeaderboard();
+    }
   } catch (err) {
     console.error('Failed to submit game score:', err.message);
   }
