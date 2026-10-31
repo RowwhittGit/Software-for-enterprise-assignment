@@ -152,6 +152,72 @@ async function login(req, res) {
 }
 
 /**
+ * Handles POST /api/auth/refresh
+ * Validates the refresh token from httpOnly cookie against the SHA-256 hash in MongoDB Atlas.
+ * Implements token rotation: revokes the old refresh token and issues a new access token AND a new refresh token.
+ */
+async function refresh(req, res) {
+  try {
+    const rawRefreshToken = req.cookies?.refreshToken;
+
+    if (!rawRefreshToken) {
+      return res.status(401).json({ error: 'Refresh token cookie is missing' });
+    }
+
+    const tokenHash = tokenService.hashToken(rawRefreshToken);
+    const storedToken = await RefreshToken.findOne({ tokenHash });
+
+    if (!storedToken) {
+      res.clearCookie('refreshToken', tokenService.getRefreshTokenCookieOptions());
+      return res.status(401).json({ error: 'Invalid or revoked refresh token' });
+    }
+
+    // Verify token expiration
+    if (storedToken.expiresAt < new Date()) {
+      await RefreshToken.deleteOne({ _id: storedToken._id });
+      res.clearCookie('refreshToken', tokenService.getRefreshTokenCookieOptions());
+      return res.status(401).json({ error: 'Refresh token has expired' });
+    }
+
+    // Retrieve corresponding user
+    const user = await User.findById(storedToken.user);
+    if (!user) {
+      await RefreshToken.deleteOne({ _id: storedToken._id });
+      res.clearCookie('refreshToken', tokenService.getRefreshTokenCookieOptions());
+      return res.status(401).json({ error: 'User no longer exists' });
+    }
+
+    // Token Rotation: Delete consumed token
+    await RefreshToken.deleteOne({ _id: storedToken._id });
+
+    // Issue brand-new refresh token and save its hash
+    const newRawRefreshToken = tokenService.generateRefreshToken();
+    const newTokenHash = tokenService.hashToken(newRawRefreshToken);
+    const newExpiresAt = new Date(Date.now() + (config.refreshTokenTtlDays || 7) * 24 * 60 * 60 * 1000);
+
+    await RefreshToken.create({
+      user: user._id,
+      tokenHash: newTokenHash,
+      expiresAt: newExpiresAt,
+    });
+
+    // Set updated cookie
+    res.cookie('refreshToken', newRawRefreshToken, tokenService.getRefreshTokenCookieOptions());
+
+    // Generate new access token
+    const accessToken = tokenService.generateAccessToken(user);
+
+    res.status(200).json({
+      message: 'Tokens refreshed successfully',
+      accessToken,
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error.message);
+    res.status(500).json({ error: 'Token refresh failed due to a server error' });
+  }
+}
+
+/**
  * Handles GET /api/auth/me
  * Protected endpoint returning the profile of the currently authenticated player.
  */
@@ -181,5 +247,6 @@ async function getMe(req, res) {
 module.exports = {
   register,
   login,
+  refresh,
   getMe,
 };
