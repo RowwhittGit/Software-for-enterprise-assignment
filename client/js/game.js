@@ -78,10 +78,10 @@ function startGame() {
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
 
-  // Update HUD difficulty label
+  // Update HUD difficulty label and timer display
   const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
   if (difficultyBadge) difficultyBadge.textContent = config.label;
-  if (timerDisplay) timerDisplay.textContent = `${config.timeLimit}s`;
+  updateTimerDisplay(config.timeLimit);
 
   // Reset player session state
   lives = 3;
@@ -118,6 +118,30 @@ function updateScoreDisplay() {
 }
 
 /**
+ * Updates the HUD timer element with remaining seconds and toggles warning style
+ */
+function updateTimerDisplay(secondsLeft) {
+  const timerDisplay = document.getElementById('timer-display');
+  if (!timerDisplay) return;
+
+  const displaySeconds = Math.max(0, secondsLeft);
+  timerDisplay.textContent = `${displaySeconds}s`;
+
+  if (displaySeconds <= 5) {
+    timerDisplay.classList.add('timer-warning');
+  } else {
+    timerDisplay.classList.remove('timer-warning');
+  }
+}
+
+/**
+ * Handles round timeout event when countdown expires
+ */
+function handleRoundTimeout() {
+  // Stub to be implemented in next commit
+}
+
+/**
  * Fetches a visual math equation puzzle from the server /api/puzzle endpoint
  * and renders it inside the game arena.
  */
@@ -151,8 +175,16 @@ async function fetchAndDisplayPuzzle() {
         }
         if (submitBtn) submitBtn.disabled = false;
 
-        // Record timestamp when the puzzle becomes visible to the player
+        // Record timestamp and start round countdown timer
         puzzleStartTime = Date.now();
+        const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+        if (window.Timer) {
+          window.Timer.startTimer(
+            config.timeLimit,
+            (secondsLeft) => updateTimerDisplay(secondsLeft),
+            () => handleRoundTimeout()
+          );
+        }
       };
       puzzleImg.src = data.question;
     }
@@ -170,8 +202,7 @@ async function fetchAndDisplayPuzzle() {
  */
 function calculatePointsEarned() {
   const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
-  const elapsedSeconds = puzzleStartTime ? Math.max(0, Math.floor((Date.now() - puzzleStartTime) / 1000)) : 0;
-  const remainingSeconds = Math.max(0, config.timeLimit - elapsedSeconds);
+  const remainingSeconds = window.Timer ? window.Timer.getTimeRemaining() : 0;
 
   return Math.round((10 + remainingSeconds) * config.multiplier);
 }
@@ -181,6 +212,11 @@ function calculatePointsEarned() {
  */
 async function handleAnswerSubmit() {
   if (!isGameActive || !currentPuzzleId) return;
+
+  // Stop timer immediately on answer submission
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
 
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
@@ -256,6 +292,15 @@ async function handleAnswerSubmit() {
  */
 function endGame() {
   isGameActive = false;
+
+  // Stop timer and remove warning indicators
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
+  const timerDisplay = document.getElementById('timer-display');
+  if (timerDisplay) {
+    timerDisplay.classList.remove('timer-warning');
+  }
 
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
