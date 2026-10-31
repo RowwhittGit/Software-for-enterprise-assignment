@@ -218,6 +218,28 @@ async function refresh(req, res) {
 }
 
 /**
+ * Handles POST /api/auth/logout
+ * Revokes the active refresh token session in MongoDB Atlas and clears the client cookie.
+ */
+async function logout(req, res) {
+  try {
+    const rawRefreshToken = req.cookies?.refreshToken;
+
+    if (rawRefreshToken) {
+      const tokenHash = tokenService.hashToken(rawRefreshToken);
+      await RefreshToken.deleteOne({ tokenHash });
+    }
+
+    res.clearCookie('refreshToken', tokenService.getRefreshTokenCookieOptions());
+
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error.message);
+    res.status(500).json({ error: 'Logout failed due to a server error' });
+  }
+}
+
+/**
  * Handles GET /api/auth/me
  * Protected endpoint returning the profile of the currently authenticated player.
  */
@@ -248,5 +270,6 @@ module.exports = {
   register,
   login,
   refresh,
+  logout,
   getMe,
 };

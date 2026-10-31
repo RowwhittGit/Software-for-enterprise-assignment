@@ -17,6 +17,9 @@ router.post('/login', authController.login);
 // POST /api/auth/refresh - rotate refresh token cookie and issue new access token
 router.post('/refresh', authController.refresh);
 
+// POST /api/auth/logout - revoke refresh token and clear cookie
+router.post('/logout', authController.logout);
+
 // GET /api/auth/me - fetch profile of the currently logged-in player
 router.get('/me', requireAuth, authController.getMe);
 
