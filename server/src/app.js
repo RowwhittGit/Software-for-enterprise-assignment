@@ -6,6 +6,7 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const authRoutes = require('./routes/auth.routes');
 const puzzleRoutes = require('./routes/puzzle.routes');
 
 const app = express();
@@ -21,6 +22,9 @@ app.use(cookieParser());
 
 // Serve client-side static assets (HTML, CSS, JS) from the client directory
 app.use(express.static(path.join(__dirname, '../../client')));
+
+// Mount authentication API routes
+app.use('/api/auth', authRoutes);
 
 // Mount puzzle API routes
 app.use('/api/puzzle', puzzleRoutes);
