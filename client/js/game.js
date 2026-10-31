@@ -63,6 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
       await handleAnswerSubmit();
     });
   }
+
+  // Load player's recent scores history if already authenticated
+  if (window.API && window.API.getAccessToken()) {
+    loadUserScores();
+  }
 });
 
 /**
@@ -73,7 +78,6 @@ function startGame() {
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
   const difficultyBadge = document.getElementById('active-difficulty-badge');
-  const timerDisplay = document.getElementById('timer-display');
 
   if (startScreen) startScreen.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
@@ -364,6 +368,94 @@ function endGame() {
   }
 
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
+
+  // Submit completed game score and update personal best
+  submitGameScore();
+}
+
+/**
+ * Submits the completed game score to POST /api/scores and updates personal best
+ */
+async function submitGameScore() {
+  const highScoreAlert = document.getElementById('high-score-alert');
+  const navHighScore = document.getElementById('current-high-score');
+
+  if (highScoreAlert) {
+    highScoreAlert.classList.add('hidden');
+  }
+
+  try {
+    const result = await window.API.jsonFetch('/api/scores', {
+      method: 'POST',
+      body: {
+        score: currentScore,
+        correctAnswers: correctAnswersCount,
+        difficulty: currentDifficulty,
+      },
+    });
+
+    if (result && result.isNewHighScore) {
+      if (highScoreAlert) {
+        highScoreAlert.textContent = `🎉 New Personal Best: ${result.highScore} pts!`;
+        highScoreAlert.classList.remove('hidden');
+      }
+      if (navHighScore) {
+        navHighScore.textContent = result.highScore;
+      }
+      sessionStorage.setItem('banana_high_score', result.highScore);
+    }
+
+    // Refresh player's recent scores history
+    await loadUserScores();
+  } catch (err) {
+    console.error('Failed to submit game score:', err.message);
+  }
+}
+
+/**
+ * Fetches recent games and verified personal best from GET /api/scores/me
+ * and renders them in the dashboard sidebar
+ */
+async function loadUserScores() {
+  const container = document.getElementById('recent-scores-container');
+  const navHighScore = document.getElementById('current-high-score');
+  if (!container) return;
+
+  try {
+    const data = await window.API.jsonFetch('/api/scores/me');
+
+    if (data && typeof data.highScore === 'number' && navHighScore) {
+      navHighScore.textContent = data.highScore;
+      sessionStorage.setItem('banana_high_score', data.highScore);
+    }
+
+    if (!data || !data.recentScores || data.recentScores.length === 0) {
+      container.innerHTML = '<p class="text-muted text-small">No games played yet. Complete a game to see your history!</p>';
+      return;
+    }
+
+    const itemsHtml = data.recentScores
+      .map((item) => {
+        const date = new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const diffLabel = item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1);
+        return `
+          <div class="recent-score-item">
+            <div class="recent-score-info">
+              <span class="recent-score-points">${item.score} pts</span>
+              <span class="badge badge-diff-${item.difficulty}">${diffLabel}</span>
+            </div>
+            <div class="recent-score-meta">
+              <span>${item.correctAnswers} solved</span> &bull; <span>${date}</span>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    container.innerHTML = `<div class="recent-scores-list">${itemsHtml}</div>`;
+  } catch (err) {
+    console.warn('Failed to load recent scores:', err.message);
+  }
 }
 
 /**
@@ -402,6 +494,8 @@ window.Game = {
   endGame,
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
+  submitGameScore,
+  loadUserScores,
   showFeedback,
   getDifficulty: () => currentDifficulty,
   getScore: () => currentScore,

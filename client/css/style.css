@@ -606,3 +606,73 @@ body {
 .text-small {
   font-size: 0.85rem;
 }
+
+
+/* Sidebar Sections and Recent Scores */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-divider {
+  border: 0;
+  height: 1px;
+  background: var(--border-color);
+  margin: 1.25rem 0;
+}
+
+.recent-scores-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.recent-score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.recent-score-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.recent-score-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recent-score-points {
+  font-weight: 700;
+  color: #b45309;
+}
+
+.recent-score-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.badge-diff-easy {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-diff-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-diff-hard {
+  background-color: #fee2e2;
+  color: #991b1b;
+}

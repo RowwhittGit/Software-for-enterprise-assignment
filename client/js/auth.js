@@ -51,6 +51,11 @@ async function initGameAuth() {
 
       sessionStorage.setItem('banana_username', data.user.username);
       sessionStorage.setItem('banana_high_score', data.user.highScore);
+
+      // Load player's recent scores history
+      if (window.Game && typeof window.Game.loadUserScores === 'function') {
+        window.Game.loadUserScores();
+      }
     }
   } catch (err) {
     console.warn('Failed to verify session profile:', err.message);
