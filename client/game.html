@@ -1,0 +1,184 @@
+<!--
+  Purpose: Interactive game play arena and player dashboard
+  AI-assisted (Antigravity) — reviewed by student
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banana Math Quest — Play</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-brand">
+        <span class="brand-icon">🍌</span>
+        <span class="brand-text">Banana Math Quest</span>
+      </a>
+
+      <div class="nav-user">
+        <span class="user-greeting">Welcome, <strong id="current-username">Player</strong></span>
+        <span class="user-high-score">Best: <strong id="current-high-score">0</strong> pts</span>
+        <a href="index.html" class="btn btn-secondary btn-sm">Home</a>
+        <button id="btn-logout" class="btn btn-secondary btn-sm" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="main-content">
+    <div class="game-dashboard">
+      <!-- Interactive Game Arena -->
+      <section id="game-arena" class="card arena-card">
+        <!-- Start / Lobby Screen -->
+        <div id="start-screen" class="arena-welcome">
+          <h2>Ready to Play?</h2>
+          <p>Solve visual equations from the Banana API and test your speed!</p>
+
+          <div class="difficulty-picker">
+            <label class="picker-label">Choose Difficulty:</label>
+            <div class="difficulty-buttons" role="radiogroup" aria-label="Difficulty">
+              <button type="button" class="btn-diff active" data-difficulty="easy" aria-pressed="true">
+                Easy <span class="diff-meta">(30s)</span>
+              </button>
+              <button type="button" class="btn-diff" data-difficulty="medium" aria-pressed="false">
+                Medium <span class="diff-meta">(20s, 1.5x)</span>
+              </button>
+              <button type="button" class="btn-diff" data-difficulty="hard" aria-pressed="false">
+                Hard <span class="diff-meta">(10s, 2x)</span>
+              </button>
+            </div>
+          </div>
+
+          <button id="btn-start-game" class="btn btn-primary btn-lg" type="button">
+            Start Game
+          </button>
+        </div>
+
+        <!-- Active Game Play Area (hidden until game starts) -->
+        <div id="play-area" class="play-area hidden">
+          <!-- Game HUD (Stats Bar) -->
+          <div class="game-hud">
+            <div class="hud-item hud-lives" title="Lives Remaining">
+              <span class="hud-label">Lives:</span>
+              <span id="lives-display" class="hud-value lives-hearts">❤️❤️❤️</span>
+            </div>
+
+            <div class="hud-item hud-score">
+              <span class="hud-label">Score:</span>
+              <span id="live-score-display" class="hud-value score-number">0</span>
+            </div>
+
+            <div class="hud-item hud-difficulty">
+              <span class="hud-label">Mode:</span>
+              <span id="active-difficulty-badge" class="badge badge-info">Easy</span>
+            </div>
+
+            <div class="hud-item hud-timer">
+              <span class="hud-label">Time:</span>
+              <span id="timer-display" class="hud-value timer-number">30s</span>
+            </div>
+          </div>
+
+          <!-- Feedback Banner -->
+          <div id="game-feedback" class="game-feedback hidden" role="status" aria-live="polite"></div>
+
+          <!-- Puzzle Display Container -->
+          <div id="puzzle-box" class="puzzle-box">
+            <div id="puzzle-loading" class="puzzle-spinner">
+              <div class="spinner"></div>
+              <span>Fetching fresh puzzle...</span>
+            </div>
+            <img id="puzzle-image" class="puzzle-image hidden" alt="Banana Math Puzzle" />
+          </div>
+
+          <!-- Answer Submission Controls -->
+          <form id="answer-form" class="answer-form">
+            <label for="answer-input" class="sr-only">Enter solution (0-9)</label>
+            <input
+              type="number"
+              id="answer-input"
+              class="answer-input"
+              placeholder="?"
+              min="0"
+              max="9"
+              required
+              autocomplete="off"
+              disabled
+            />
+            <button type="submit" id="btn-submit-answer" class="btn btn-primary" disabled>
+              Submit Answer
+            </button>
+          </form>
+        </div>
+
+        <!-- Game Over Screen (hidden by default) -->
+        <div id="game-over-screen" class="game-over-card hidden">
+          <div class="game-over-icon">💥</div>
+          <h2>Game Over!</h2>
+          <p class="game-over-subtitle">Great run! Here are your game stats:</p>
+
+          <div class="game-over-stats">
+            <div class="stat-box">
+              <span class="stat-title">Final Score</span>
+              <span id="final-score" class="stat-value">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-title">Puzzles Solved</span>
+              <span id="final-correct" class="stat-value">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-title">Difficulty</span>
+              <span id="final-difficulty" class="stat-value">Easy</span>
+            </div>
+          </div>
+
+          <div id="high-score-alert" class="alert alert-success hidden">
+            🎉 New Personal Best!
+          </div>
+
+          <div class="game-over-actions">
+            <button id="btn-play-again" class="btn btn-primary btn-lg" type="button">
+              Play Again
+            </button>
+            <a href="index.html" class="btn btn-secondary btn-lg">
+              Home
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside id="scoreboard-sidebar" class="card sidebar-card">
+        <div class="sidebar-section">
+          <h3>Top Players</h3>
+          <p class="text-muted text-small">Global leaderboard updates after each game.</p>
+          <div id="leaderboard-container">
+            <p class="text-muted text-small">Leaderboard will appear here.</p>
+          </div>
+        </div>
+
+        <hr class="sidebar-divider" />
+
+        <div class="sidebar-section">
+          <h3>Your Recent Games</h3>
+          <p class="text-muted text-small">Personal match history &amp; bests.</p>
+          <div id="recent-scores-container">
+            <p class="text-muted text-small">No games played yet.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Core Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/leaderboard.js"></script>
+</body>
+</html>

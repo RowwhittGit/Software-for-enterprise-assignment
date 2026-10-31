@@ -6,12 +6,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
+  const gameArena = document.getElementById('game-arena');
 
   if (loginForm && registerForm) {
     initAuthPage();
-  } else {
+  } else if (gameArena) {
     // Authenticated game page shell
     initGameAuth();
+  } else {
+    // Landing page or public views
+    initLandingAuth();
   }
 });
 
@@ -96,7 +100,7 @@ function initAuthPage() {
   // If user already has an active session cookie, redirect directly to game page
   window.API.attemptTokenRefresh().then((hasActiveSession) => {
     if (hasActiveSession) {
-      window.location.href = '/index.html';
+      window.location.href = '/game.html';
     }
   });
 
@@ -163,12 +167,12 @@ function initAuthPage() {
       sessionStorage.setItem('banana_username', data.user.username);
       sessionStorage.setItem('banana_high_score', data.user.highScore);
 
-      showAlert('Signed in successfully! Redirecting...', 'success');
+      showAlert('Signed in successfully! Redirecting to game...', 'success');
 
       // Redirect to main game page
       setTimeout(() => {
-        window.location.href = '/index.html';
-      }, 400);
+        window.location.href = '/game.html';
+      }, 350);
     } catch (err) {
       showAlert(err.message, 'error');
     } finally {
@@ -238,8 +242,8 @@ function initAuthPage() {
         sessionStorage.setItem('banana_high_score', loginData.user.highScore);
 
         setTimeout(() => {
-          window.location.href = '/index.html';
-        }, 400);
+          window.location.href = '/game.html';
+        }, 350);
       } else {
         tabLogin.click();
         identifierInput.value = username;
@@ -268,5 +272,60 @@ function initAuthPage() {
     if (!button) return;
     button.disabled = isLoading;
     button.textContent = text;
+  }
+}
+
+/**
+ * Initializes navigation bar authentication display on public pages (like index.html)
+ */
+async function initLandingAuth() {
+  const navGuest = document.getElementById('nav-guest');
+  const navUser = document.getElementById('nav-user');
+  const usernameEl = document.getElementById('landing-username');
+  const logoutBtn = document.getElementById('btn-landing-logout');
+
+  let hasSession = false;
+
+  if (window.API) {
+    if (!window.API.getAccessToken()) {
+      hasSession = await window.API.attemptTokenRefresh();
+    } else {
+      hasSession = true;
+    }
+  }
+
+  if (hasSession) {
+    try {
+      const data = await window.API.jsonFetch('/api/auth/me');
+      if (data && data.user) {
+        if (usernameEl) usernameEl.textContent = data.user.username;
+        if (navGuest) navGuest.classList.add('hidden');
+        if (navUser) navUser.classList.remove('hidden');
+        sessionStorage.setItem('banana_username', data.user.username);
+        sessionStorage.setItem('banana_high_score', data.user.highScore);
+      }
+    } catch {
+      if (navGuest) navGuest.classList.remove('hidden');
+      if (navUser) navUser.classList.add('hidden');
+    }
+  } else {
+    if (navGuest) navGuest.classList.remove('hidden');
+    if (navUser) navUser.classList.add('hidden');
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+      try {
+        await window.API.apiFetch('/api/auth/logout', { method: 'POST' });
+      } catch (err) {
+        console.warn('Logout request warning:', err.message);
+      } finally {
+        window.API.clearAccessToken();
+        sessionStorage.removeItem('banana_username');
+        sessionStorage.removeItem('banana_high_score');
+        window.location.reload();
+      }
+    });
   }
 }
