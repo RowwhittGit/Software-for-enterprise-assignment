@@ -5,6 +5,7 @@
 
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const tokenService = require('../services/tokenService');
 
 const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
 
@@ -79,6 +80,60 @@ async function register(req, res) {
   }
 }
 
+/**
+ * Handles POST /api/auth/login
+ * Verifies credentials, compares password hash via bcrypt, and issues a JWT access token.
+ */
+async function login(req, res) {
+  try {
+    const { username, email, password } = req.body;
+    const identifier = username || email;
+
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'Username/email and password are required' });
+    }
+
+    const trimmedIdentifier = identifier.trim();
+
+    // Look up user by either username or email
+    const user = await User.findOne({
+      $or: [
+        { username: trimmedIdentifier },
+        { email: trimmedIdentifier.toLowerCase() },
+      ],
+    });
+
+    // Use generic error message to prevent user enumeration
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid username/email or password' });
+    }
+
+    // Verify submitted plaintext password against stored bcrypt hash
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid username/email or password' });
+    }
+
+    // Generate short-lived stateless JWT access token
+    const accessToken = tokenService.generateAccessToken(user);
+
+    res.status(200).json({
+      message: 'Login successful',
+      accessToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        highScore: user.highScore,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ error: 'Login failed due to a server error' });
+  }
+}
+
 module.exports = {
   register,
+  login,
 };
