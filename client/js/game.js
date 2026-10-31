@@ -1,5 +1,5 @@
 /**
- * Purpose: Core game loop and state management
+ * Purpose: Core game loop and state management with lives and game over
  * AI-assisted (Antigravity) — reviewed by student
  */
 
@@ -7,13 +7,22 @@
 let currentDifficulty = 'easy';
 let currentPuzzleId = null;
 let isGameActive = false;
+let lives = 3;
+let correctAnswersCount = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.getElementById('btn-start-game');
+  const btnPlayAgain = document.getElementById('btn-play-again');
   const answerForm = document.getElementById('answer-form');
 
   if (btnStart) {
     btnStart.addEventListener('click', () => {
+      startGame();
+    });
+  }
+
+  if (btnPlayAgain) {
+    btnPlayAgain.addEventListener('click', () => {
       startGame();
     });
   }
@@ -28,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Initializes and starts a new game round
+ * Initializes and starts a new game session with 3 lives
  */
 function startGame() {
   const startScreen = document.getElementById('start-screen');
@@ -39,10 +48,26 @@ function startGame() {
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
 
+  // Reset player session state
+  lives = 3;
+  correctAnswersCount = 0;
+  updateLivesDisplay();
   hideFeedback();
   isGameActive = true;
 
   fetchAndDisplayPuzzle();
+}
+
+/**
+ * Updates the lives indicator with heart icons (3 lives total)
+ */
+function updateLivesDisplay() {
+  const livesDisplay = document.getElementById('lives-display');
+  if (!livesDisplay) return;
+
+  const fullHearts = '❤️'.repeat(Math.max(0, lives));
+  const emptyHearts = '🤍'.repeat(Math.max(0, 3 - lives));
+  livesDisplay.textContent = fullHearts + emptyHearts;
 }
 
 /**
@@ -124,28 +149,62 @@ async function handleAnswerSubmit() {
     });
 
     if (result.correct) {
+      correctAnswersCount++;
       showFeedback('Correct! Well done! 🎉', 'correct');
-    } else if (result.timedOut) {
-      showFeedback("Time's up! ⏰", 'wrong');
-    } else {
-      showFeedback('Wrong answer! ❌', 'wrong');
-    }
 
-    // Load next puzzle after short feedback pause
-    setTimeout(() => {
-      hideFeedback();
-      if (isGameActive) {
-        fetchAndDisplayPuzzle();
+      setTimeout(() => {
+        hideFeedback();
+        if (isGameActive) fetchAndDisplayPuzzle();
+      }, 800);
+    } else {
+      // Deduct a life on incorrect answer or timeout
+      lives--;
+      updateLivesDisplay();
+
+      const reason = result.timedOut ? "Time's up! ⏰ (-1 life)" : 'Wrong answer! ❌ (-1 life)';
+      showFeedback(reason, 'wrong');
+
+      if (lives <= 0) {
+        setTimeout(() => {
+          endGame();
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          hideFeedback();
+          if (isGameActive) fetchAndDisplayPuzzle();
+        }, 900);
       }
-    }, 900);
+    }
   } catch (err) {
     console.error('Error submitting answer:', err.message);
-    showFeedback('Error submitting answer. Loading next puzzle...', 'wrong');
+    showFeedback('Error verifying answer. Retrying...', 'wrong');
     setTimeout(() => {
       hideFeedback();
       if (isGameActive) fetchAndDisplayPuzzle();
     }, 1000);
   }
+}
+
+/**
+ * Concludes the game session and presents the Game Over screen
+ */
+function endGame() {
+  isGameActive = false;
+
+  const playArea = document.getElementById('play-area');
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const finalCorrectEl = document.getElementById('final-correct');
+  const finalDiffEl = document.getElementById('final-difficulty');
+
+  if (playArea) playArea.classList.add('hidden');
+  hideFeedback();
+
+  if (finalCorrectEl) finalCorrectEl.textContent = correctAnswersCount;
+  if (finalDiffEl) {
+    finalDiffEl.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+  }
+
+  if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 }
 
 /**
@@ -174,6 +233,7 @@ function hideFeedback() {
 // Export for module accessibility
 window.Game = {
   startGame,
+  endGame,
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
   showFeedback,
