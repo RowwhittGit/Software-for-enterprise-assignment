@@ -1,5 +1,5 @@
 /**
- * Purpose: Core game loop and state management with lives, scoring, and game over
+ * Purpose: Core game loop and state management with difficulty selection, lives, and scoring
  * AI-assisted (Antigravity) — reviewed by student
  */
 
@@ -12,17 +12,36 @@ let currentScore = 0;
 let correctAnswersCount = 0;
 let puzzleStartTime = null;
 
-// Difficulty configuration
+// Difficulty configuration (time limit in seconds and score multiplier)
 const DIFFICULTY_CONFIG = {
-  easy: { timeLimit: 30, multiplier: 1 },
-  medium: { timeLimit: 20, multiplier: 1.5 },
-  hard: { timeLimit: 10, multiplier: 2 },
+  easy: { timeLimit: 30, multiplier: 1, label: 'Easy' },
+  medium: { timeLimit: 20, multiplier: 1.5, label: 'Medium' },
+  hard: { timeLimit: 10, multiplier: 2, label: 'Hard' },
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.getElementById('btn-start-game');
   const btnPlayAgain = document.getElementById('btn-play-again');
   const answerForm = document.getElementById('answer-form');
+  const diffButtons = document.querySelectorAll('.btn-diff');
+
+  // Handle difficulty selection on start screen
+  diffButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      diffButtons.forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+
+      const chosen = btn.dataset.difficulty;
+      if (DIFFICULTY_CONFIG[chosen]) {
+        currentDifficulty = chosen;
+      }
+    });
+  });
 
   if (btnStart) {
     btnStart.addEventListener('click', () => {
@@ -46,16 +65,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Initializes and starts a new game session with 3 lives and reset score
+ * Initializes and starts a new game session with selected difficulty, 3 lives, and reset score
  */
 function startGame() {
   const startScreen = document.getElementById('start-screen');
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
+  const difficultyBadge = document.getElementById('active-difficulty-badge');
+  const timerDisplay = document.getElementById('timer-display');
 
   if (startScreen) startScreen.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
+
+  // Update HUD difficulty label
+  const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+  if (difficultyBadge) difficultyBadge.textContent = config.label;
+  if (timerDisplay) timerDisplay.textContent = `${config.timeLimit}s`;
 
   // Reset player session state
   lives = 3;
@@ -243,7 +269,8 @@ function endGame() {
   if (finalScoreEl) finalScoreEl.textContent = currentScore;
   if (finalCorrectEl) finalCorrectEl.textContent = correctAnswersCount;
   if (finalDiffEl) {
-    finalDiffEl.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+    const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+    finalDiffEl.textContent = config.label;
   }
 
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
@@ -279,6 +306,7 @@ window.Game = {
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
   showFeedback,
+  getDifficulty: () => currentDifficulty,
   getScore: () => currentScore,
   getLives: () => lives,
 };
