@@ -6,10 +6,10 @@
 const express = require('express');
 const router = express.Router();
 const puzzleController = require('../controllers/puzzle.controller');
+const requireAuth = require('../middleware/requireAuth');
 
-// Authentication middleware will be attached here in Step 5:
-// const requireAuth = require('../middleware/requireAuth');
-// router.use(requireAuth);
+// Protect all puzzle endpoints: requires valid JWT Authorization: Bearer <access-token>
+router.use(requireAuth);
 
 // GET /api/puzzle?difficulty= - fetch new puzzle challenge
 router.get('/', puzzleController.getPuzzleHandler);
