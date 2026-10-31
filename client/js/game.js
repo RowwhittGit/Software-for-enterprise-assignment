@@ -1,5 +1,5 @@
 /**
- * Purpose: Core game loop and state management with lives and game over
+ * Purpose: Core game loop and state management with lives, scoring, and game over
  * AI-assisted (Antigravity) — reviewed by student
  */
 
@@ -8,7 +8,16 @@ let currentDifficulty = 'easy';
 let currentPuzzleId = null;
 let isGameActive = false;
 let lives = 3;
+let currentScore = 0;
 let correctAnswersCount = 0;
+let puzzleStartTime = null;
+
+// Difficulty configuration
+const DIFFICULTY_CONFIG = {
+  easy: { timeLimit: 30, multiplier: 1 },
+  medium: { timeLimit: 20, multiplier: 1.5 },
+  hard: { timeLimit: 10, multiplier: 2 },
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.getElementById('btn-start-game');
@@ -37,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Initializes and starts a new game session with 3 lives
+ * Initializes and starts a new game session with 3 lives and reset score
  */
 function startGame() {
   const startScreen = document.getElementById('start-screen');
@@ -50,8 +59,10 @@ function startGame() {
 
   // Reset player session state
   lives = 3;
+  currentScore = 0;
   correctAnswersCount = 0;
   updateLivesDisplay();
+  updateScoreDisplay();
   hideFeedback();
   isGameActive = true;
 
@@ -68,6 +79,16 @@ function updateLivesDisplay() {
   const fullHearts = '❤️'.repeat(Math.max(0, lives));
   const emptyHearts = '🤍'.repeat(Math.max(0, 3 - lives));
   livesDisplay.textContent = fullHearts + emptyHearts;
+}
+
+/**
+ * Updates the current score display in the game HUD
+ */
+function updateScoreDisplay() {
+  const scoreDisplay = document.getElementById('live-score-display');
+  if (scoreDisplay) {
+    scoreDisplay.textContent = currentScore;
+  }
 }
 
 /**
@@ -103,6 +124,9 @@ async function fetchAndDisplayPuzzle() {
           answerInput.focus();
         }
         if (submitBtn) submitBtn.disabled = false;
+
+        // Record timestamp when the puzzle becomes visible to the player
+        puzzleStartTime = Date.now();
       };
       puzzleImg.src = data.question;
     }
@@ -112,6 +136,18 @@ async function fetchAndDisplayPuzzle() {
       puzzleSpinner.textContent = 'Failed to load puzzle. Please check your connection and refresh.';
     }
   }
+}
+
+/**
+ * Calculates score earned for a correct answer:
+ * base 10 + remaining seconds, multiplied by difficulty factor (hard x2, medium x1.5).
+ */
+function calculatePointsEarned() {
+  const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+  const elapsedSeconds = puzzleStartTime ? Math.max(0, Math.floor((Date.now() - puzzleStartTime) / 1000)) : 0;
+  const remainingSeconds = Math.max(0, config.timeLimit - elapsedSeconds);
+
+  return Math.round((10 + remainingSeconds) * config.multiplier);
 }
 
 /**
@@ -150,7 +186,11 @@ async function handleAnswerSubmit() {
 
     if (result.correct) {
       correctAnswersCount++;
-      showFeedback('Correct! Well done! 🎉', 'correct');
+      const earned = calculatePointsEarned();
+      currentScore += earned;
+      updateScoreDisplay();
+
+      showFeedback(`Correct! +${earned} pts 🎉`, 'correct');
 
       setTimeout(() => {
         hideFeedback();
@@ -186,19 +226,21 @@ async function handleAnswerSubmit() {
 }
 
 /**
- * Concludes the game session and presents the Game Over screen
+ * Concludes the game session and presents the Game Over screen with final score
  */
 function endGame() {
   isGameActive = false;
 
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
+  const finalScoreEl = document.getElementById('final-score');
   const finalCorrectEl = document.getElementById('final-correct');
   const finalDiffEl = document.getElementById('final-difficulty');
 
   if (playArea) playArea.classList.add('hidden');
   hideFeedback();
 
+  if (finalScoreEl) finalScoreEl.textContent = currentScore;
   if (finalCorrectEl) finalCorrectEl.textContent = correctAnswersCount;
   if (finalDiffEl) {
     finalDiffEl.textContent = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
@@ -237,4 +279,6 @@ window.Game = {
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
   showFeedback,
+  getScore: () => currentScore,
+  getLives: () => lives,
 };
