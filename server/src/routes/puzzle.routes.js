@@ -14,4 +14,7 @@ const puzzleController = require('../controllers/puzzle.controller');
 // GET /api/puzzle?difficulty= - fetch new puzzle challenge
 router.get('/', puzzleController.getPuzzleHandler);
 
+// POST /api/puzzle/answer - submit answer for verification
+router.post('/answer', puzzleController.checkAnswerHandler);
+
 module.exports = router;

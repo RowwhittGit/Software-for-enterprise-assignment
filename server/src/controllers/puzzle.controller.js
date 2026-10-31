@@ -43,6 +43,57 @@ async function getPuzzleHandler(req, res) {
   }
 }
 
+/**
+ * Handles POST /api/puzzle/answer
+ * Body: { puzzleId, answer }
+ * Verifies submitted answer against the server-side solution, checks the time limit,
+ * and purges the puzzle challenge to prevent repeat answers.
+ */
+function checkAnswerHandler(req, res) {
+  const { puzzleId, answer } = req.body;
+
+  if (!puzzleId || typeof puzzleId !== 'string') {
+    return res.status(400).json({ error: 'puzzleId is required' });
+  }
+
+  if (answer === undefined || answer === null || isNaN(Number(answer))) {
+    return res.status(400).json({ error: 'A numerical answer is required' });
+  }
+
+  const puzzle = puzzleStore.getPuzzle(puzzleId);
+
+  if (!puzzle) {
+    return res.status(400).json({ error: 'Puzzle not found, expired, or already answered' });
+  }
+
+  const elapsedSeconds = (Date.now() - puzzle.issuedAt) / 1000;
+  const timeTaken = Math.round(elapsedSeconds);
+
+  // Time limit check: reject if time elapsed exceeds limit plus 2-second grace period
+  if (elapsedSeconds > puzzle.timeLimit + puzzleStore.GRACE_PERIOD_SECONDS) {
+    puzzleStore.removePuzzle(puzzleId);
+    return res.status(200).json({
+      correct: false,
+      timedOut: true,
+      timeTaken,
+      message: 'Time limit exceeded',
+    });
+  }
+
+  // Compare submitted answer with stored solution
+  const isCorrect = parseInt(answer, 10) === puzzle.solution;
+
+  // Invalidate puzzle immediately to prevent replay submissions
+  puzzleStore.removePuzzle(puzzleId);
+
+  res.status(200).json({
+    correct: isCorrect,
+    timedOut: false,
+    timeTaken,
+  });
+}
+
 module.exports = {
   getPuzzleHandler,
+  checkAnswerHandler,
 };
