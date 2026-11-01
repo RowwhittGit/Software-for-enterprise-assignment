@@ -66,7 +66,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnPlayAgain) {
     btnPlayAgain.addEventListener('click', () => {
+      const modalOverlay = document.getElementById('game-over-modal-overlay');
+      if (modalOverlay) modalOverlay.classList.add('hidden');
       startGame();
+    });
+  }
+
+  const btnViewLeaderboard = document.getElementById('btn-view-leaderboard');
+  if (btnViewLeaderboard) {
+    btnViewLeaderboard.addEventListener('click', () => {
+      const modalOverlay = document.getElementById('game-over-modal-overlay');
+      if (modalOverlay) modalOverlay.classList.add('hidden');
+
+      const startScreen = document.getElementById('start-screen');
+      const playArea = document.getElementById('play-area');
+      if (playArea) playArea.classList.add('hidden');
+      if (startScreen) startScreen.classList.remove('hidden');
+
+      const sidebar = document.getElementById('scoreboard-sidebar');
+      if (sidebar) {
+        sidebar.scrollIntoView({ behavior: 'smooth' });
+      }
     });
   }
 
@@ -134,10 +154,12 @@ function startGame() {
   const startScreen = document.getElementById('start-screen');
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
+  const modalOverlay = document.getElementById('game-over-modal-overlay');
   const difficultyBadge = document.getElementById('active-difficulty-badge');
 
   if (startScreen) startScreen.classList.add('hidden');
   if (gameOverScreen) gameOverScreen.classList.add('hidden');
+  if (modalOverlay) modalOverlay.classList.add('hidden');
   if (playArea) playArea.classList.remove('hidden');
 
   // Reset timer module and HUD indicators
@@ -527,6 +549,14 @@ function endGame() {
   }
 
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
+  const modalOverlay = document.getElementById('game-over-modal-overlay');
+  if (modalOverlay) {
+    modalOverlay.classList.remove('hidden');
+    setTimeout(() => {
+      const btnPlayAgain = document.getElementById('btn-play-again');
+      if (btnPlayAgain) btnPlayAgain.focus();
+    }, 100);
+  }
 
   // Submit completed game score and update personal best
   submitGameScore();
