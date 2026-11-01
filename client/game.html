@@ -86,31 +86,38 @@
 
         <!-- Active Game Play Area (hidden until game starts) -->
         <div id="play-area" class="play-area hidden">
-          <!-- Game HUD (Stats Bar) -->
+          <!-- Game HUD (Stats Bar & Progress Indicator) -->
           <div class="game-hud">
-            <div class="hud-item hud-lives" title="Lives Remaining">
-              <span class="hud-label">Lives:</span>
-              <span id="lives-display" class="hud-value lives-hearts">❤️❤️❤️</span>
+            <div class="hud-stats-row">
+              <div class="hud-item hud-lives" title="Lives Remaining">
+                <span class="hud-label">Lives:</span>
+                <span id="lives-display" class="hud-value lives-hearts">❤️❤️❤️</span>
+              </div>
+
+              <div class="hud-item hud-score">
+                <span class="hud-label">Score:</span>
+                <span id="live-score-display" class="hud-value score-number">0</span>
+              </div>
+
+              <div class="hud-item hud-best" title="Personal Best Score">
+                <span class="hud-label">Best:</span>
+                <span id="hud-high-score-display" class="hud-value best-number">0</span>
+              </div>
+
+              <div class="hud-item hud-difficulty">
+                <span class="hud-label">Mode:</span>
+                <span id="active-difficulty-badge" class="badge badge-info">Easy</span>
+              </div>
+
+              <div class="hud-item hud-timer">
+                <span class="hud-label">Time:</span>
+                <span id="timer-display" class="hud-value timer-number">30s</span>
+              </div>
             </div>
 
-            <div class="hud-item hud-score">
-              <span class="hud-label">Score:</span>
-              <span id="live-score-display" class="hud-value score-number">0</span>
-            </div>
-
-            <div class="hud-item hud-best" title="Personal Best Score">
-              <span class="hud-label">Best:</span>
-              <span id="hud-high-score-display" class="hud-value best-number">0</span>
-            </div>
-
-            <div class="hud-item hud-difficulty">
-              <span class="hud-label">Mode:</span>
-              <span id="active-difficulty-badge" class="badge badge-info">Easy</span>
-            </div>
-
-            <div class="hud-item hud-timer">
-              <span class="hud-label">Time:</span>
-              <span id="timer-display" class="hud-value timer-number">30s</span>
+            <!-- Visual Countdown Progress Bar -->
+            <div class="timer-bar-container" aria-hidden="true" title="Countdown timer bar">
+              <div id="timer-bar-fill" class="timer-bar-fill timer-bar-safe"></div>
             </div>
           </div>
 
@@ -119,10 +126,24 @@
 
           <!-- Puzzle Display Container -->
           <div id="puzzle-box" class="puzzle-box">
-            <div id="puzzle-loading" class="puzzle-spinner">
+            <!-- Loading Skeleton with Shimmer -->
+            <div id="puzzle-loading" class="puzzle-skeleton">
+              <div class="skeleton-shimmer"></div>
               <div class="spinner"></div>
-              <span>Fetching fresh puzzle...</span>
+              <span class="skeleton-text">Fetching fresh puzzle...</span>
             </div>
+
+            <!-- Friendly Error State with Retry -->
+            <div id="puzzle-error" class="puzzle-error hidden">
+              <div class="puzzle-error-icon">⚠️</div>
+              <h4 class="puzzle-error-title">Couldn't load puzzle</h4>
+              <p class="puzzle-error-desc">There was an issue fetching the equation from the Banana API.</p>
+              <button id="btn-retry-puzzle" class="btn btn-secondary btn-sm" type="button">
+                🔄 Try Again
+              </button>
+            </div>
+
+            <!-- Loaded Puzzle Image -->
             <img id="puzzle-image" class="puzzle-image hidden" alt="Banana Math Puzzle" />
           </div>
 
@@ -213,4 +234,3 @@
   <script src="js/leaderboard.js"></script>
 </body>
 </html>
-

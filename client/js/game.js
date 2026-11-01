@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnRetryPuzzle = document.getElementById('btn-retry-puzzle');
+  if (btnRetryPuzzle) {
+    btnRetryPuzzle.addEventListener('click', () => {
+      fetchAndDisplayPuzzle();
+    });
+  }
+
   // Handle answer submission via Enter key or Submit button click
   if (answerForm) {
     answerForm.addEventListener('submit', async (e) => {
@@ -143,19 +150,39 @@ function updateScoreDisplay() {
 }
 
 /**
- * Updates the HUD timer element with remaining seconds and toggles warning style
+ * Updates the HUD timer element and visual progress bar with remaining seconds
  */
 function updateTimerDisplay(secondsLeft) {
   const timerDisplay = document.getElementById('timer-display');
-  if (!timerDisplay) return;
+  const timerBarFill = document.getElementById('timer-bar-fill');
+  const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+  const maxSeconds = config.timeLimit || 30;
 
   const displaySeconds = Math.max(0, secondsLeft);
-  timerDisplay.textContent = `${displaySeconds}s`;
 
-  if (displaySeconds <= 5) {
-    timerDisplay.classList.add('timer-warning');
-  } else {
-    timerDisplay.classList.remove('timer-warning');
+  if (timerDisplay) {
+    timerDisplay.textContent = `${displaySeconds}s`;
+
+    if (displaySeconds <= 5) {
+      timerDisplay.classList.add('timer-warning');
+    } else {
+      timerDisplay.classList.remove('timer-warning');
+    }
+  }
+
+  // Update visual progress bar width and color transition
+  if (timerBarFill) {
+    const percentage = Math.max(0, Math.min(100, (displaySeconds / maxSeconds) * 100));
+    timerBarFill.style.width = `${percentage}%`;
+
+    timerBarFill.classList.remove('timer-bar-safe', 'timer-bar-warn', 'timer-bar-danger');
+    if (percentage > 50) {
+      timerBarFill.classList.add('timer-bar-safe');
+    } else if (percentage > 25) {
+      timerBarFill.classList.add('timer-bar-warn');
+    } else {
+      timerBarFill.classList.add('timer-bar-danger');
+    }
   }
 }
 
@@ -198,12 +225,14 @@ function handleRoundTimeout() {
 async function fetchAndDisplayPuzzle() {
   const puzzleSpinner = document.getElementById('puzzle-loading');
   const puzzleImg = document.getElementById('puzzle-image');
+  const puzzleError = document.getElementById('puzzle-error');
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
 
   // Reset UI controls while fetching
   if (puzzleSpinner) puzzleSpinner.classList.remove('hidden');
   if (puzzleImg) puzzleImg.classList.add('hidden');
+  if (puzzleError) puzzleError.classList.add('hidden');
   if (answerInput) {
     answerInput.disabled = true;
     answerInput.value = '';
@@ -223,9 +252,18 @@ async function fetchAndDisplayPuzzle() {
     currentPuzzleId = data.puzzleId;
 
     if (puzzleImg) {
+      puzzleImg.onerror = () => {
+        isRoundProcessing = false;
+        if (window.Timer) window.Timer.stopTimer();
+        if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
+        if (puzzleImg) puzzleImg.classList.add('hidden');
+        if (puzzleError) puzzleError.classList.remove('hidden');
+      };
+
       puzzleImg.onload = () => {
         isRoundProcessing = false;
         if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
+        if (puzzleError) puzzleError.classList.add('hidden');
         puzzleImg.classList.remove('hidden');
         if (answerInput) {
           answerInput.disabled = false;
@@ -251,9 +289,9 @@ async function fetchAndDisplayPuzzle() {
     if (window.Timer) {
       window.Timer.stopTimer();
     }
-    if (puzzleSpinner) {
-      puzzleSpinner.textContent = 'Failed to load puzzle. Please check your connection and refresh.';
-    }
+    if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
+    if (puzzleImg) puzzleImg.classList.add('hidden');
+    if (puzzleError) puzzleError.classList.remove('hidden');
   }
 }
 
