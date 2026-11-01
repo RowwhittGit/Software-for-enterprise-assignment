@@ -900,8 +900,88 @@ img {
   display: block;
   font-weight: 700;
   font-size: 0.95rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
   color: var(--text-main);
+}
+
+/* Start Screen Difficulty Selection Cards */
+.difficulty-cards-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.diff-select-card {
+  background-color: var(--bg-surface);
+  border: 2.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+.diff-select-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.diff-select-card:focus-visible {
+  outline: 3px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
+.diff-select-card.active {
+  border-color: var(--primary-hover);
+  background-color: #fffbeb;
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
+}
+
+.diff-card-badge {
+  margin-bottom: 0.75rem;
+}
+
+.diff-card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.diff-card-name {
+  font-size: 1.3rem;
+  margin-bottom: 0.35rem;
+}
+
+.diff-card-time {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+}
+
+.diff-card-mult {
+  font-size: 0.85rem;
+  color: var(--primary-hover);
+  font-weight: 600;
+  margin-bottom: 0.65rem;
+}
+
+.diff-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.best-number {
+  color: #0d9488;
+  font-size: 1.15rem;
 }
 
 .difficulty-buttons {

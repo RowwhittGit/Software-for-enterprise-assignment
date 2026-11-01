@@ -39,17 +39,43 @@
           <p>Solve visual equations from the Banana API and test your speed!</p>
 
           <div class="difficulty-picker">
-            <label class="picker-label">Choose Difficulty:</label>
-            <div class="difficulty-buttons" role="radiogroup" aria-label="Difficulty">
-              <button type="button" class="btn-diff active" data-difficulty="easy" aria-pressed="true">
-                Easy <span class="diff-meta">(30s)</span>
-              </button>
-              <button type="button" class="btn-diff" data-difficulty="medium" aria-pressed="false">
-                Medium <span class="diff-meta">(20s, 1.5x)</span>
-              </button>
-              <button type="button" class="btn-diff" data-difficulty="hard" aria-pressed="false">
-                Hard <span class="diff-meta">(10s, 2x)</span>
-              </button>
+            <label class="picker-label">Select Difficulty:</label>
+            <div class="difficulty-cards-group" role="radiogroup" aria-label="Select Game Difficulty">
+              <!-- Easy Card -->
+              <div class="diff-select-card active" data-difficulty="easy" role="radio" aria-checked="true" tabindex="0">
+                <div class="diff-card-badge">
+                  <span class="badge badge-diff-easy">Easy</span>
+                </div>
+                <div class="diff-card-icon">🌱</div>
+                <h3 class="diff-card-name">Easy</h3>
+                <div class="diff-card-time">⏱️ 30s per puzzle</div>
+                <div class="diff-card-mult">Multiplier: <strong>1.0x</strong></div>
+                <p class="diff-card-desc">Relaxed countdown for warm-ups and casual play.</p>
+              </div>
+
+              <!-- Medium Card -->
+              <div class="diff-select-card" data-difficulty="medium" role="radio" aria-checked="false" tabindex="0">
+                <div class="diff-card-badge">
+                  <span class="badge badge-diff-medium">Standard</span>
+                </div>
+                <div class="diff-card-icon">⚡</div>
+                <h3 class="diff-card-name">Medium</h3>
+                <div class="diff-card-time">⏱️ 20s per puzzle</div>
+                <div class="diff-card-mult">Multiplier: <strong>1.5x</strong></div>
+                <p class="diff-card-desc">Balanced speed test with 50% score boost.</p>
+              </div>
+
+              <!-- Hard Card -->
+              <div class="diff-select-card" data-difficulty="hard" role="radio" aria-checked="false" tabindex="0">
+                <div class="diff-card-badge">
+                  <span class="badge badge-diff-hard">Expert</span>
+                </div>
+                <div class="diff-card-icon">🔥</div>
+                <h3 class="diff-card-name">Hard</h3>
+                <div class="diff-card-time">⏱️ 10s per puzzle</div>
+                <div class="diff-card-mult">Multiplier: <strong>2.0x</strong></div>
+                <p class="diff-card-desc">Rapid 10-second blitz with double points.</p>
+              </div>
             </div>
           </div>
 
@@ -70,6 +96,11 @@
             <div class="hud-item hud-score">
               <span class="hud-label">Score:</span>
               <span id="live-score-display" class="hud-value score-number">0</span>
+            </div>
+
+            <div class="hud-item hud-best" title="Personal Best Score">
+              <span class="hud-label">Best:</span>
+              <span id="hud-high-score-display" class="hud-value best-number">0</span>
             </div>
 
             <div class="hud-item hud-difficulty">
@@ -182,3 +213,4 @@
   <script src="js/leaderboard.js"></script>
 </body>
 </html>
+

@@ -24,22 +24,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.getElementById('btn-start-game');
   const btnPlayAgain = document.getElementById('btn-play-again');
   const answerForm = document.getElementById('answer-form');
-  const diffButtons = document.querySelectorAll('.btn-diff');
+  const diffElements = document.querySelectorAll('.diff-select-card, .btn-diff');
 
   // Handle difficulty selection on start screen
-  diffButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      diffButtons.forEach((b) => {
+  diffElements.forEach((el) => {
+    function selectDiff() {
+      diffElements.forEach((b) => {
         b.classList.remove('active');
         b.setAttribute('aria-pressed', 'false');
+        b.setAttribute('aria-checked', 'false');
       });
 
-      btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
+      el.classList.add('active');
+      el.setAttribute('aria-pressed', 'true');
+      el.setAttribute('aria-checked', 'true');
 
-      const chosen = btn.dataset.difficulty;
+      const chosen = el.dataset.difficulty;
       if (DIFFICULTY_CONFIG[chosen]) {
         currentDifficulty = chosen;
+      }
+    }
+
+    el.addEventListener('click', selectDiff);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectDiff();
       }
     });
   });
@@ -90,6 +100,12 @@ function startGame() {
   const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
   if (difficultyBadge) difficultyBadge.textContent = config.label;
   updateTimerDisplay(config.timeLimit);
+
+  // Update HUD personal best
+  const hudHighScore = document.getElementById('hud-high-score-display');
+  if (hudHighScore) {
+    hudHighScore.textContent = sessionStorage.getItem('banana_high_score') || '0';
+  }
 
   // Reset player session state
   lives = 3;
@@ -260,7 +276,7 @@ async function handleAnswerSubmit() {
 
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
-  const rawAnswer = answerInput.value.trim();
+  const rawAnswer = answerInput ? answerInput.value.trim() : '';
 
   if (rawAnswer === '') {
     showFeedback('Please enter a digit from 0 to 9.', 'wrong');
@@ -282,8 +298,8 @@ async function handleAnswerSubmit() {
   }
 
   // Disable controls during server roundtrip
-  answerInput.disabled = true;
-  submitBtn.disabled = true;
+  if (answerInput) answerInput.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
 
   try {
     const result = await window.API.jsonFetch('/api/puzzle/answer', {
@@ -379,6 +395,7 @@ function endGame() {
 async function submitGameScore() {
   const highScoreAlert = document.getElementById('high-score-alert');
   const navHighScore = document.getElementById('current-high-score');
+  const hudHighScore = document.getElementById('hud-high-score-display');
 
   if (highScoreAlert) {
     highScoreAlert.classList.add('hidden');
@@ -402,6 +419,9 @@ async function submitGameScore() {
       if (navHighScore) {
         navHighScore.textContent = result.highScore;
       }
+      if (hudHighScore) {
+        hudHighScore.textContent = result.highScore;
+      }
       sessionStorage.setItem('banana_high_score', result.highScore);
     }
 
@@ -422,13 +442,15 @@ async function submitGameScore() {
 async function loadUserScores() {
   const container = document.getElementById('recent-scores-container');
   const navHighScore = document.getElementById('current-high-score');
+  const hudHighScore = document.getElementById('hud-high-score-display');
   if (!container) return;
 
   try {
     const data = await window.API.jsonFetch('/api/scores/me');
 
-    if (data && typeof data.highScore === 'number' && navHighScore) {
-      navHighScore.textContent = data.highScore;
+    if (data && typeof data.highScore === 'number') {
+      if (navHighScore) navHighScore.textContent = data.highScore;
+      if (hudHighScore) hudHighScore.textContent = data.highScore;
       sessionStorage.setItem('banana_high_score', data.highScore);
     }
 

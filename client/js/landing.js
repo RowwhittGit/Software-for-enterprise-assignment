@@ -61,3 +61,4 @@ async function loadLandingLeaderboard() {
     container.innerHTML = '<p class="text-muted text-small text-center" style="padding: 1.5rem 0;">Unable to load leaderboard. Sign in and play!</p>';
   }
 }
+
