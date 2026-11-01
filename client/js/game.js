@@ -12,6 +12,7 @@ let currentScore = 0;
 let correctAnswersCount = 0;
 let puzzleStartTime = null;
 let isRoundProcessing = false;
+let selectedDigit = null;
 
 // Difficulty configuration (time limit in seconds and score multiplier)
 const DIFFICULTY_CONFIG = {
@@ -23,7 +24,10 @@ const DIFFICULTY_CONFIG = {
 document.addEventListener('DOMContentLoaded', () => {
   const btnStart = document.getElementById('btn-start-game');
   const btnPlayAgain = document.getElementById('btn-play-again');
-  const answerForm = document.getElementById('answer-form');
+  const btnRetryPuzzle = document.getElementById('btn-retry-puzzle');
+  const btnSubmitAnswer = document.getElementById('btn-submit-answer');
+  const btnNumpadClear = document.getElementById('btn-numpad-clear');
+  const numpadDigits = document.querySelectorAll('.numpad-digit');
   const diffElements = document.querySelectorAll('.diff-select-card, .btn-diff');
 
   // Handle difficulty selection on start screen
@@ -66,20 +70,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const btnRetryPuzzle = document.getElementById('btn-retry-puzzle');
   if (btnRetryPuzzle) {
     btnRetryPuzzle.addEventListener('click', () => {
       fetchAndDisplayPuzzle();
     });
   }
 
-  // Handle answer submission via Enter key or Submit button click
-  if (answerForm) {
-    answerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // Handle number pad digit button clicks
+  numpadDigits.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const digit = parseInt(btn.dataset.digit, 10);
+      if (!isNaN(digit)) {
+        selectDigit(digit);
+      }
+    });
+  });
+
+  // Handle number pad clear button click
+  if (btnNumpadClear) {
+    btnNumpadClear.addEventListener('click', () => {
+      clearSelectedDigit();
+    });
+  }
+
+  // Handle answer submission via keypad submit button
+  if (btnSubmitAnswer) {
+    btnSubmitAnswer.addEventListener('click', async () => {
       await handleAnswerSubmit();
     });
   }
+
+  // Keyboard controls: 0-9 selects digit, Enter submits, Backspace/Esc clears
+  document.addEventListener('keydown', async (e) => {
+    if (!isGameActive || isRoundProcessing) return;
+
+    // Do not intercept if user has focus inside an input or textarea
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+    if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault();
+      selectDigit(parseInt(e.key, 10));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedDigit !== null) {
+        await handleAnswerSubmit();
+      }
+    } else if (e.key === 'Backspace' || e.key === 'Escape' || e.key === 'Delete') {
+      e.preventDefault();
+      clearSelectedDigit();
+    }
+  });
 
   // Load player's recent scores history if already authenticated
   if (window.API && window.API.getAccessToken()) {
@@ -119,12 +159,92 @@ function startGame() {
   currentScore = 0;
   correctAnswersCount = 0;
   isRoundProcessing = false;
+  clearSelectedDigit();
+  setNumpadDisabled(true);
   updateLivesDisplay();
   updateScoreDisplay();
   hideFeedback();
   isGameActive = true;
 
   fetchAndDisplayPuzzle();
+}
+
+/**
+ * Selects an answer digit (0-9), highlights the keypad button, and updates the preview
+ * @param {number} digit - Chosen digit 0 through 9
+ */
+function selectDigit(digit) {
+  if (!isGameActive || isRoundProcessing) return;
+  selectedDigit = digit;
+
+  const numpadDigits = document.querySelectorAll('.numpad-digit');
+  numpadDigits.forEach((btn) => {
+    if (btn.dataset.digit === String(digit)) {
+      btn.classList.add('selected');
+      btn.setAttribute('aria-pressed', 'true');
+    } else {
+      btn.classList.remove('selected');
+      btn.setAttribute('aria-pressed', 'false');
+    }
+  });
+
+  const previewBox = document.getElementById('answer-preview-box');
+  const previewDigit = document.getElementById('selected-answer-digit');
+  if (previewDigit) {
+    previewDigit.textContent = String(digit);
+    previewDigit.classList.remove('preview-placeholder');
+  }
+  if (previewBox) {
+    previewBox.classList.add('has-value');
+  }
+
+  const submitBtn = document.getElementById('btn-submit-answer');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+  }
+}
+
+/**
+ * Clears current digit selection and resets keypad state
+ */
+function clearSelectedDigit() {
+  selectedDigit = null;
+
+  const numpadDigits = document.querySelectorAll('.numpad-digit');
+  numpadDigits.forEach((btn) => {
+    btn.classList.remove('selected');
+    btn.setAttribute('aria-pressed', 'false');
+  });
+
+  const previewBox = document.getElementById('answer-preview-box');
+  const previewDigit = document.getElementById('selected-answer-digit');
+  if (previewDigit) {
+    previewDigit.textContent = '?';
+    previewDigit.classList.add('preview-placeholder');
+  }
+  if (previewBox) {
+    previewBox.classList.remove('has-value');
+  }
+
+  const submitBtn = document.getElementById('btn-submit-answer');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+  }
+}
+
+/**
+ * Toggles disabled state of keypad buttons
+ * @param {boolean} disabled
+ */
+function setNumpadDisabled(disabled) {
+  const numpadBtns = document.querySelectorAll('.numpad-btn');
+  numpadBtns.forEach((btn) => {
+    if (btn.id === 'btn-submit-answer') {
+      btn.disabled = disabled || selectedDigit === null;
+    } else {
+      btn.disabled = disabled;
+    }
+  });
 }
 
 /**
@@ -194,11 +314,8 @@ function handleRoundTimeout() {
   if (!isGameActive || isRoundProcessing) return;
   isRoundProcessing = true;
 
-  // Disable inputs on timeout
-  const answerInput = document.getElementById('answer-input');
-  const submitBtn = document.getElementById('btn-submit-answer');
-  if (answerInput) answerInput.disabled = true;
-  if (submitBtn) submitBtn.disabled = true;
+  // Disable keypad inputs on timeout
+  setNumpadDisabled(true);
 
   // Deduct one life for running out of time
   lives--;
@@ -213,6 +330,7 @@ function handleRoundTimeout() {
   } else {
     setTimeout(() => {
       hideFeedback();
+      clearSelectedDigit();
       if (isGameActive) fetchAndDisplayPuzzle();
     }, 900);
   }
@@ -226,18 +344,13 @@ async function fetchAndDisplayPuzzle() {
   const puzzleSpinner = document.getElementById('puzzle-loading');
   const puzzleImg = document.getElementById('puzzle-image');
   const puzzleError = document.getElementById('puzzle-error');
-  const answerInput = document.getElementById('answer-input');
-  const submitBtn = document.getElementById('btn-submit-answer');
 
   // Reset UI controls while fetching
   if (puzzleSpinner) puzzleSpinner.classList.remove('hidden');
   if (puzzleImg) puzzleImg.classList.add('hidden');
   if (puzzleError) puzzleError.classList.add('hidden');
-  if (answerInput) {
-    answerInput.disabled = true;
-    answerInput.value = '';
-  }
-  if (submitBtn) submitBtn.disabled = true;
+  setNumpadDisabled(true);
+  clearSelectedDigit();
 
   // Stop any active timer and reset HUD display to starting time limit
   if (window.Timer) {
@@ -258,6 +371,7 @@ async function fetchAndDisplayPuzzle() {
         if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
         if (puzzleImg) puzzleImg.classList.add('hidden');
         if (puzzleError) puzzleError.classList.remove('hidden');
+        setNumpadDisabled(true);
       };
 
       puzzleImg.onload = () => {
@@ -265,11 +379,7 @@ async function fetchAndDisplayPuzzle() {
         if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
         if (puzzleError) puzzleError.classList.add('hidden');
         puzzleImg.classList.remove('hidden');
-        if (answerInput) {
-          answerInput.disabled = false;
-          answerInput.focus();
-        }
-        if (submitBtn) submitBtn.disabled = false;
+        setNumpadDisabled(false);
 
         // Record timestamp and start round countdown timer
         puzzleStartTime = Date.now();
@@ -292,6 +402,7 @@ async function fetchAndDisplayPuzzle() {
     if (puzzleSpinner) puzzleSpinner.classList.add('hidden');
     if (puzzleImg) puzzleImg.classList.add('hidden');
     if (puzzleError) puzzleError.classList.remove('hidden');
+    setNumpadDisabled(true);
   }
 }
 
@@ -307,25 +418,17 @@ function calculatePointsEarned() {
 }
 
 /**
- * Validates and submits the player's answer to the server for verification
+ * Validates and submits the player's selected keypad digit to the server for verification
  */
 async function handleAnswerSubmit() {
-  if (!isGameActive || !currentPuzzleId || isRoundProcessing) return;
-
-  const answerInput = document.getElementById('answer-input');
-  const submitBtn = document.getElementById('btn-submit-answer');
-  const rawAnswer = answerInput ? answerInput.value.trim() : '';
-
-  if (rawAnswer === '') {
-    showFeedback('Please enter a digit from 0 to 9.', 'wrong');
+  if (!isGameActive || !currentPuzzleId || isRoundProcessing || selectedDigit === null) {
+    if (selectedDigit === null && isGameActive && !isRoundProcessing) {
+      showFeedback('Please select a number (0-9) on the keypad.', 'wrong');
+    }
     return;
   }
 
-  const answer = parseInt(rawAnswer, 10);
-  if (isNaN(answer) || answer < 0 || answer > 9) {
-    showFeedback('Answer must be a single digit (0-9).', 'wrong');
-    return;
-  }
+  const answer = selectedDigit;
 
   // Mark round as processing to prevent simultaneous timeout trigger
   isRoundProcessing = true;
@@ -335,9 +438,8 @@ async function handleAnswerSubmit() {
     window.Timer.stopTimer();
   }
 
-  // Disable controls during server roundtrip
-  if (answerInput) answerInput.disabled = true;
-  if (submitBtn) submitBtn.disabled = true;
+  // Disable keypad buttons during server verification roundtrip
+  setNumpadDisabled(true);
 
   try {
     const result = await window.API.jsonFetch('/api/puzzle/answer', {
@@ -358,6 +460,7 @@ async function handleAnswerSubmit() {
 
       setTimeout(() => {
         hideFeedback();
+        clearSelectedDigit();
         if (isGameActive) fetchAndDisplayPuzzle();
       }, 800);
     } else {
@@ -375,6 +478,7 @@ async function handleAnswerSubmit() {
       } else {
         setTimeout(() => {
           hideFeedback();
+          clearSelectedDigit();
           if (isGameActive) fetchAndDisplayPuzzle();
         }, 900);
       }
@@ -384,6 +488,7 @@ async function handleAnswerSubmit() {
     showFeedback('Error verifying answer. Retrying...', 'wrong');
     setTimeout(() => {
       hideFeedback();
+      clearSelectedDigit();
       if (isGameActive) fetchAndDisplayPuzzle();
     }, 1000);
   }
@@ -557,10 +662,13 @@ window.Game = {
   endGame,
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
+  selectDigit,
+  clearSelectedDigit,
   submitGameScore,
   loadUserScores,
   showFeedback,
   getDifficulty: () => currentDifficulty,
   getScore: () => currentScore,
   getLives: () => lives,
+  getSelectedDigit: () => selectedDigit,
 };
