@@ -5,6 +5,8 @@
 
 const mongoose = require('mongoose');
 const GameSession = require('../models/GameSession');
+const Score = require('../models/Score');
+const User = require('../models/User');
 const bananaService = require('../services/bananaService');
 const puzzleStore = require('../services/puzzleStore');
 const scoringService = require('../services/scoring');
@@ -240,8 +242,77 @@ async function submitSessionAnswer(req, res) {
   }
 }
 
+/**
+ * Handles POST /api/game/:sessionId/finish
+ * Concludes the game session when lives reach 0 or player decides to quit.
+ * Persists the Score document using server-verified stats, updates user's personal best if beaten,
+ * deletes the active game session, and returns { score, correctAnswers, difficulty, isNewHighScore, highScore }.
+ */
+async function finishGameSession(req, res) {
+  try {
+    const userId = req.user && req.user.userId;
+    const { sessionId } = req.params;
+
+    if (!isValidObjectId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid sessionId format' });
+    }
+
+    const session = await GameSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Game session not found' });
+    }
+
+    // Verify session belongs to authenticated user
+    if (session.user.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: Game session does not belong to user' });
+    }
+
+    // Clean up any pending puzzle in memory
+    if (session.currentPuzzleId) {
+      puzzleStore.removePuzzle(session.currentPuzzleId);
+    }
+
+    // Create and save permanent Score record from server-authoritative session values
+    const newScore = new Score({
+      user: session.user,
+      score: session.score,
+      correctAnswers: session.correctAnswers,
+      puzzlesAttempted: session.puzzlesAttempted,
+      difficulty: session.difficulty,
+    });
+    await newScore.save();
+
+    // Check and update user's personal high score in database if beaten
+    const user = await User.findById(userId);
+    let isNewHighScore = false;
+    let personalBest = user ? (user.highScore || 0) : 0;
+
+    if (user && session.score > personalBest) {
+      user.highScore = session.score;
+      await user.save();
+      isNewHighScore = true;
+      personalBest = session.score;
+    }
+
+    // Delete completed game session from database
+    await GameSession.findByIdAndDelete(session._id);
+
+    return res.status(200).json({
+      score: session.score,
+      correctAnswers: session.correctAnswers,
+      difficulty: session.difficulty,
+      isNewHighScore,
+      highScore: personalBest,
+    });
+  } catch (error) {
+    console.error('Error finishing game session:', error.message);
+    return res.status(500).json({ error: 'Internal server error while concluding game session' });
+  }
+}
+
 module.exports = {
   startGameSession,
   getPuzzleForSession,
   submitSessionAnswer,
+  finishGameSession,
 };

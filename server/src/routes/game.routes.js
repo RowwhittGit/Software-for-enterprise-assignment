@@ -20,4 +20,7 @@ router.get('/:sessionId/puzzle', gameController.getPuzzleForSession);
 // Submit an answer for the current puzzle
 router.post('/:sessionId/answer', gameController.submitSessionAnswer);
 
+// Conclude game session and save final score
+router.post('/:sessionId/finish', gameController.finishGameSession);
+
 module.exports = router;
