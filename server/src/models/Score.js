@@ -24,6 +24,12 @@ const scoreSchema = new mongoose.Schema({
     required: [true, 'Correct answers count is required'],
     min: [0, 'Correct answers count cannot be negative'],
   },
+  // Total number of puzzles attempted in this session (defaults to 0 for backward compatibility)
+  puzzlesAttempted: {
+    type: Number,
+    default: 0,
+    min: [0, 'Puzzles attempted count cannot be negative'],
+  },
   // Game difficulty selected by the user
   difficulty: {
     type: String,
