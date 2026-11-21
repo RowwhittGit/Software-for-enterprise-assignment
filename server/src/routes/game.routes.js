@@ -17,4 +17,7 @@ router.post('/start', gameController.startGameSession);
 // Fetch a puzzle for an active game session
 router.get('/:sessionId/puzzle', gameController.getPuzzleForSession);
 
+// Submit an answer for the current puzzle
+router.post('/:sessionId/answer', gameController.submitSessionAnswer);
+
 module.exports = router;

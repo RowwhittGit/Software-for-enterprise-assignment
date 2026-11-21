@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const GameSession = require('../models/GameSession');
 const bananaService = require('../services/bananaService');
 const puzzleStore = require('../services/puzzleStore');
+const scoringService = require('../services/scoring');
 
 const ALLOWED_DIFFICULTIES = ['easy', 'medium', 'hard'];
 
@@ -130,7 +131,117 @@ async function getPuzzleForSession(req, res) {
   }
 }
 
+/**
+ * Handles POST /api/game/:sessionId/answer
+ * Body: { puzzleId, answer, timedOut? }
+ * Verifies puzzleId against the session's active puzzle, enforces time limits + grace period,
+ * updates server-authoritative score and lives, removes puzzle to prevent replay,
+ * and returns { correct, score, lives, correctAnswers, gameOver }.
+ */
+async function submitSessionAnswer(req, res) {
+  try {
+    const userId = req.user && req.user.userId;
+    const { sessionId } = req.params;
+    const { puzzleId, answer, timedOut } = req.body || {};
+
+    if (!isValidObjectId(sessionId)) {
+      return res.status(400).json({ error: 'Invalid sessionId format' });
+    }
+
+    const session = await GameSession.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Game session not found' });
+    }
+
+    // Verify session belongs to authenticated user
+    if (session.user.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: Game session does not belong to user' });
+    }
+
+    // Refuse if already finished or no lives left
+    if (session.status === 'finished' || session.lives <= 0) {
+      return res.status(400).json({
+        error: 'Game session is finished or out of lives',
+        gameOver: true,
+      });
+    }
+
+    // Verify puzzleId matches the session's current active puzzle
+    if (!puzzleId || typeof puzzleId !== 'string' || puzzleId !== session.currentPuzzleId) {
+      return res.status(400).json({
+        error: 'Puzzle not found, expired, or already answered',
+      });
+    }
+
+    // Retrieve solution and timestamps from server-side memory store
+    const puzzle = puzzleStore.getPuzzle(puzzleId);
+
+    // Invalidate puzzle from memory immediately to prevent replay submissions
+    puzzleStore.removePuzzle(puzzleId);
+    session.currentPuzzleId = null;
+    session.puzzlesAttempted += 1;
+
+    let isCorrect = false;
+
+    // Check if client explicitly reported a timeout
+    const isClientTimeout = timedOut === true || timedOut === 'true';
+
+    if (isClientTimeout || !puzzle) {
+      // Timeout or expired puzzle costs one life
+      session.lives = Math.max(0, session.lives - 1);
+      isCorrect = false;
+    } else {
+      const elapsedSeconds = (Date.now() - puzzle.issuedAt) / 1000;
+
+      // Time limit check: reject if elapsed time exceeds limit plus grace period
+      if (elapsedSeconds > puzzle.timeLimit + puzzleStore.GRACE_PERIOD_SECONDS) {
+        // Late answer counts as wrong and costs a life
+        session.lives = Math.max(0, session.lives - 1);
+        isCorrect = false;
+      } else {
+        // Check numerical answer against server solution
+        const numericAnswer = parseInt(answer, 10);
+        if (!isNaN(numericAnswer) && numericAnswer === puzzle.solution) {
+          isCorrect = true;
+          session.correctAnswers += 1;
+          const pointsEarned = scoringService.calculatePoints(
+            session.difficulty,
+            puzzle.issuedAt,
+            puzzle.timeLimit
+          );
+          session.score += pointsEarned;
+        } else {
+          // Wrong answer costs one life
+          session.lives = Math.max(0, session.lives - 1);
+          isCorrect = false;
+        }
+      }
+    }
+
+    const gameOver = session.lives <= 0;
+    if (gameOver) {
+      session.status = 'finished';
+    }
+
+    // Refresh TTL on player action
+    session.touch();
+    await session.save();
+
+    return res.status(200).json({
+      correct: isCorrect,
+      score: session.score,
+      lives: session.lives,
+      correctAnswers: session.correctAnswers,
+      gameOver,
+    });
+  } catch (error) {
+    console.error('Error submitting session answer:', error.message);
+    return res.status(500).json({ error: 'Internal server error while processing answer' });
+  }
+}
+
 module.exports = {
   startGameSession,
   getPuzzleForSession,
+  submitSessionAnswer,
 };
