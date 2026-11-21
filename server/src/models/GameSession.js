@@ -80,3 +80,4 @@ gameSessionSchema.methods.touch = function () {
 const GameSession = mongoose.model('GameSession', gameSessionSchema);
 
 module.exports = GameSession;
+
