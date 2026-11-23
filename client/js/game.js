@@ -439,11 +439,14 @@ async function handleAnswerSubmit() {
 }
 
 /**
- * Concludes the game session and presents the Game Over screen with final score
+ * Concludes the game session and finalizes authoritative scores via the server
  */
-function endGame() {
+async function endGame() {
+  const sessionIdToFinish = currentSessionId;
+
   isGameActive = false;
   isRoundProcessing = false;
+  currentSessionId = null;
 
   // Stop timer and remove warning indicators
   if (window.Timer) {
@@ -459,10 +462,17 @@ function endGame() {
   const finalScoreEl = document.getElementById('final-score');
   const finalCorrectEl = document.getElementById('final-correct');
   const finalDiffEl = document.getElementById('final-difficulty');
+  const highScoreAlert = document.getElementById('high-score-alert');
+  const navHighScore = document.getElementById('current-high-score');
 
   if (playArea) playArea.classList.add('hidden');
   hideFeedback();
 
+  if (highScoreAlert) {
+    highScoreAlert.classList.add('hidden');
+  }
+
+  // Pre-fill preliminary client values while waiting for final server confirmation
   if (finalScoreEl) finalScoreEl.textContent = currentScore;
   if (finalCorrectEl) finalCorrectEl.textContent = correctAnswersCount;
   if (finalDiffEl) {
@@ -472,49 +482,38 @@ function endGame() {
 
   if (gameOverScreen) gameOverScreen.classList.remove('hidden');
 
-  // Submit completed game score and update personal best
-  submitGameScore();
-}
+  if (sessionIdToFinish) {
+    try {
+      const result = await window.API.jsonFetch(`/api/game/${sessionIdToFinish}/finish`, {
+        method: 'POST',
+      });
 
-/**
- * Submits the completed game score to POST /api/scores and updates personal best
- */
-async function submitGameScore() {
-  const highScoreAlert = document.getElementById('high-score-alert');
-  const navHighScore = document.getElementById('current-high-score');
-
-  if (highScoreAlert) {
-    highScoreAlert.classList.add('hidden');
-  }
-
-  try {
-    const result = await window.API.jsonFetch('/api/scores', {
-      method: 'POST',
-      body: {
-        score: currentScore,
-        correctAnswers: correctAnswersCount,
-        difficulty: currentDifficulty,
-      },
-    });
-
-    if (result && result.isNewHighScore) {
-      if (highScoreAlert) {
-        highScoreAlert.textContent = `🎉 New Personal Best: ${result.highScore} pts!`;
-        highScoreAlert.classList.remove('hidden');
+      if (finalScoreEl) finalScoreEl.textContent = result.score;
+      if (finalCorrectEl) finalCorrectEl.textContent = result.correctAnswers;
+      if (finalDiffEl && result.difficulty) {
+        finalDiffEl.textContent = result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1);
       }
-      if (navHighScore) {
-        navHighScore.textContent = result.highScore;
-      }
-      sessionStorage.setItem('banana_high_score', result.highScore);
-    }
 
-    // Refresh player's recent scores history and global leaderboard
-    await loadUserScores();
-    if (window.Leaderboard && typeof window.Leaderboard.fetchAndRenderLeaderboard === 'function') {
-      window.Leaderboard.fetchAndRenderLeaderboard();
+      if (result.isNewHighScore) {
+        if (highScoreAlert) {
+          highScoreAlert.textContent = `🎉 New Personal Best: ${result.highScore} pts!`;
+          highScoreAlert.classList.remove('hidden');
+        }
+        if (navHighScore) {
+          navHighScore.textContent = result.highScore;
+        }
+        sessionStorage.setItem('banana_high_score', result.highScore);
+      }
+
+      // Refresh recent scores history and global leaderboard
+      await loadUserScores();
+      if (window.Leaderboard && typeof window.Leaderboard.fetchAndRenderLeaderboard === 'function') {
+        window.Leaderboard.fetchAndRenderLeaderboard();
+      }
+    } catch (err) {
+      console.error('Failed to finalize game session on server:', err.message);
+      showToast('Failed to record final game score on server.', 'error');
     }
-  } catch (err) {
-    console.error('Failed to submit game score:', err.message);
   }
 }
 
@@ -600,7 +599,6 @@ window.Game = {
   endGame,
   fetchAndDisplayPuzzle,
   handleAnswerSubmit,
-  submitGameScore,
   loadUserScores,
   showFeedback,
   showToast,
