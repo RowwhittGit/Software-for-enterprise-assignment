@@ -147,8 +147,14 @@
       <!-- Sidebar -->
       <aside id="scoreboard-sidebar" class="card sidebar-card">
         <div class="sidebar-section">
-          <h3>Top Players</h3>
-          <p class="text-muted text-small">Global leaderboard updates after each game.</p>
+          <div class="leaderboard-header">
+            <h3>Top Players</h3>
+            <span id="leaderboard-live-badge" class="live-indicator live-indicator-connecting" title="Real-time leaderboard connection">
+              <span class="live-indicator-dot"></span>
+              <span class="live-indicator-text">Connecting</span>
+            </span>
+          </div>
+          <p class="text-muted text-small">Global leaderboard updates in real time.</p>
           <div id="leaderboard-container">
             <p class="text-muted text-small">Leaderboard will appear here.</p>
           </div>

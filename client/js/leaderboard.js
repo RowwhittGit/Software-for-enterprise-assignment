@@ -7,10 +7,33 @@ let eventSource = null;
 let lastLeaderboardSnapshot = [];
 
 /**
- * Renders leaderboard entries into the container element
- * @param {Array} list - Array of leaderboard entries
+ * Updates the visual status badge for real-time SSE connectivity
+ * @param {'live'|'reconnecting'|'connecting'} state
  */
-function renderLeaderboardData(list) {
+function updateLiveBadge(state) {
+  const badge = document.getElementById('leaderboard-live-badge');
+  if (!badge) return;
+
+  badge.className = `live-indicator live-indicator-${state}`;
+  const textEl = badge.querySelector('.live-indicator-text');
+
+  if (textEl) {
+    if (state === 'live') {
+      textEl.textContent = 'Live';
+    } else if (state === 'reconnecting') {
+      textEl.textContent = 'Reconnecting';
+    } else {
+      textEl.textContent = 'Connecting';
+    }
+  }
+}
+
+/**
+ * Renders leaderboard entries into the container element, highlighting rows that changed
+ * @param {Array} list - Array of leaderboard entries
+ * @param {boolean} [highlightChanges=false] - Whether to apply visual pulse on updated rows
+ */
+function renderLeaderboardData(list, highlightChanges = false) {
   const container = document.getElementById('leaderboard-container');
   if (!container) return;
 
@@ -22,10 +45,25 @@ function renderLeaderboardData(list) {
     return;
   }
 
+  // Build a lookup map of the previous snapshot for change detection
+  const prevMap = new Map();
+  lastLeaderboardSnapshot.forEach((item) => {
+    prevMap.set(item.id || `${item.username}-${item.rank}`, item);
+  });
+
   const itemsHtml = list
     .map((entry) => {
       const isCurrentUser = currentUsername && entry.username.toLowerCase() === currentUsername.toLowerCase();
-      const highlightClass = isCurrentUser ? 'leaderboard-item current-player' : 'leaderboard-item';
+      let itemClasses = 'leaderboard-item';
+      if (isCurrentUser) itemClasses += ' current-player';
+
+      // Check if entry is new or updated in rank/score compared to previous snapshot
+      if (highlightChanges && lastLeaderboardSnapshot.length > 0) {
+        const prev = prevMap.get(entry.id || `${entry.username}-${entry.rank}`);
+        if (!prev || prev.score !== entry.score || prev.rank !== entry.rank) {
+          itemClasses += ' row-updated';
+        }
+      }
 
       // Medal icons for podium ranks (1st, 2nd, 3rd)
       let rankDisplay = `#${entry.rank}`;
@@ -38,7 +76,7 @@ function renderLeaderboardData(list) {
         : 'Easy';
 
       return `
-        <div class="${highlightClass}" data-id="${entry.id}">
+        <div class="${itemClasses}" data-id="${entry.id}">
           <div class="leaderboard-left">
             <span class="rank-badge rank-${entry.rank}">${rankDisplay}</span>
             <span class="leaderboard-name" title="${entry.username}">
@@ -73,7 +111,7 @@ async function fetchAndRenderLeaderboard() {
     }
 
     const data = await response.json();
-    renderLeaderboardData(data && data.leaderboard);
+    renderLeaderboardData(data && data.leaderboard, false);
   } catch (error) {
     console.warn('Failed to load global leaderboard:', error.message);
     if (!lastLeaderboardSnapshot.length) {
@@ -94,18 +132,25 @@ function initLeaderboardStream() {
     eventSource.close();
   }
 
+  updateLiveBadge('connecting');
+
   try {
     eventSource = new EventSource('/api/leaderboard/stream');
 
+    eventSource.onopen = () => {
+      updateLiveBadge('live');
+    };
+
     eventSource.addEventListener('connected', () => {
-      // Connection established
+      updateLiveBadge('live');
     });
 
     eventSource.addEventListener('leaderboard', (event) => {
       try {
+        updateLiveBadge('live');
         const payload = JSON.parse(event.data);
         if (payload && Array.isArray(payload.leaderboard)) {
-          renderLeaderboardData(payload.leaderboard);
+          renderLeaderboardData(payload.leaderboard, true);
         }
       } catch (err) {
         console.warn('Failed to parse incoming leaderboard event:', err.message);
@@ -113,10 +158,11 @@ function initLeaderboardStream() {
     });
 
     eventSource.onerror = () => {
-      // Reconnecting automatically handled by browser EventSource
+      updateLiveBadge('reconnecting');
     };
   } catch (err) {
     console.warn('Could not initialize SSE leaderboard stream:', err.message);
+    updateLiveBadge('reconnecting');
   }
 }
 
@@ -127,6 +173,7 @@ function closeStream() {
   if (eventSource) {
     eventSource.close();
     eventSource = null;
+    updateLiveBadge('reconnecting');
   }
 }
 
@@ -146,4 +193,5 @@ window.Leaderboard = {
   fetchAndRenderLeaderboard,
   initLeaderboardStream,
   closeStream,
+  updateLiveBadge,
 };
