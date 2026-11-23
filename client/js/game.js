@@ -214,33 +214,65 @@ function updateTimerDisplay(secondsLeft) {
 
 /**
  * Handles round timeout event when countdown expires:
- * Deducts one life, shows alert feedback, and advances to next puzzle or ends game.
+ * Reports timeout to server, updates state from response, and advances or ends game.
  */
-function handleRoundTimeout() {
-  if (!isGameActive || isRoundProcessing) return;
+async function handleRoundTimeout() {
+  if (!isGameActive || isRoundProcessing || !currentSessionId) return;
   isRoundProcessing = true;
 
-  // Disable inputs on timeout
+  // Stop timer and disable inputs
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
   if (answerInput) answerInput.disabled = true;
   if (submitBtn) submitBtn.disabled = true;
 
-  // Deduct one life for running out of time
-  lives--;
-  updateLivesDisplay();
+  try {
+    const result = await window.API.jsonFetch(`/api/game/${currentSessionId}/answer`, {
+      method: 'POST',
+      body: {
+        puzzleId: currentPuzzleId,
+        timedOut: true,
+      },
+    });
 
-  showFeedback("Time's up! ⏰ (-1 life)", 'wrong');
+    lives = result.lives;
+    currentScore = result.score;
+    correctAnswersCount = result.correctAnswers;
+    updateLivesDisplay();
+    updateScoreDisplay();
 
-  if (lives <= 0) {
-    setTimeout(() => {
+    showFeedback("Time's up! ⏰ (-1 life)", 'wrong');
+
+    if (result.gameOver || lives <= 0) {
+      setTimeout(() => {
+        endGame();
+      }, 1000);
+    } else {
+      setTimeout(() => {
+        hideFeedback();
+        if (isGameActive) fetchAndDisplayPuzzle();
+      }, 900);
+    }
+  } catch (err) {
+    console.error('Error reporting timeout to server:', err.message);
+    if (err.status === 404 || err.status === 400) {
+      showToast('Game session ended or expired.', 'error');
+      resetToStartScreen();
+      return;
+    }
+    lives = Math.max(0, lives - 1);
+    updateLivesDisplay();
+    if (lives <= 0) {
       endGame();
-    }, 1000);
-  } else {
-    setTimeout(() => {
-      hideFeedback();
-      if (isGameActive) fetchAndDisplayPuzzle();
-    }, 900);
+    } else {
+      setTimeout(() => {
+        hideFeedback();
+        if (isGameActive) fetchAndDisplayPuzzle();
+      }, 900);
+    }
   }
 }
 
@@ -321,25 +353,14 @@ async function fetchAndDisplayPuzzle() {
 }
 
 /**
- * Calculates score earned for a correct answer:
- * base 10 + remaining seconds, multiplied by difficulty factor (hard x2, medium x1.5).
- */
-function calculatePointsEarned() {
-  const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
-  const remainingSeconds = window.Timer ? window.Timer.getTimeRemaining() : 0;
-
-  return Math.round((10 + remainingSeconds) * config.multiplier);
-}
-
-/**
- * Validates and submits the player's answer to the server for verification
+ * Submits the player's answer to the server for authoritative verification
  */
 async function handleAnswerSubmit() {
-  if (!isGameActive || !currentPuzzleId || isRoundProcessing) return;
+  if (!isGameActive || !currentPuzzleId || isRoundProcessing || !currentSessionId) return;
 
   const answerInput = document.getElementById('answer-input');
   const submitBtn = document.getElementById('btn-submit-answer');
-  const rawAnswer = answerInput.value.trim();
+  const rawAnswer = answerInput ? answerInput.value.trim() : '';
 
   if (rawAnswer === '') {
     showFeedback('Please enter a digit from 0 to 9.', 'wrong');
@@ -352,7 +373,6 @@ async function handleAnswerSubmit() {
     return;
   }
 
-  // Mark round as processing to prevent simultaneous timeout trigger
   isRoundProcessing = true;
 
   // Stop timer immediately on answer submission
@@ -361,39 +381,38 @@ async function handleAnswerSubmit() {
   }
 
   // Disable controls during server roundtrip
-  answerInput.disabled = true;
-  submitBtn.disabled = true;
+  if (answerInput) answerInput.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
 
   try {
-    const result = await window.API.jsonFetch('/api/puzzle/answer', {
+    const result = await window.API.jsonFetch(`/api/game/${currentSessionId}/answer`, {
       method: 'POST',
       body: {
         puzzleId: currentPuzzleId,
         answer,
+        timedOut: false,
       },
     });
 
-    if (result.correct) {
-      correctAnswersCount++;
-      const earned = calculatePointsEarned();
-      currentScore += earned;
-      updateScoreDisplay();
+    lives = result.lives;
+    currentScore = result.score;
+    correctAnswersCount = result.correctAnswers;
+    updateLivesDisplay();
+    updateScoreDisplay();
 
-      showFeedback(`Correct! +${earned} pts 🎉`, 'correct');
+    if (result.correct) {
+      const earnedBonus = result.pointsEarned ? ` +${result.pointsEarned} pts` : '';
+      showFeedback(`Correct!${earnedBonus} 🎉`, 'correct');
 
       setTimeout(() => {
         hideFeedback();
         if (isGameActive) fetchAndDisplayPuzzle();
       }, 800);
     } else {
-      // Deduct a life on incorrect answer or timeout
-      lives--;
-      updateLivesDisplay();
-
       const reason = result.timedOut ? "Time's up! ⏰ (-1 life)" : 'Wrong answer! ❌ (-1 life)';
       showFeedback(reason, 'wrong');
 
-      if (lives <= 0) {
+      if (result.gameOver || lives <= 0) {
         setTimeout(() => {
           endGame();
         }, 1000);
@@ -406,6 +425,11 @@ async function handleAnswerSubmit() {
     }
   } catch (err) {
     console.error('Error submitting answer:', err.message);
+    if (err.status === 404 || err.status === 400) {
+      showToast('Game session ended or expired.', 'error');
+      resetToStartScreen();
+      return;
+    }
     showFeedback('Error verifying answer. Retrying...', 'wrong');
     setTimeout(() => {
       hideFeedback();
