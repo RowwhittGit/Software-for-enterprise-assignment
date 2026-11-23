@@ -1,6 +1,5 @@
 /**
  * Purpose: Centralized environment variable configuration loader
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const dotenv = require('dotenv');

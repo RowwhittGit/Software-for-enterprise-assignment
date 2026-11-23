@@ -1,6 +1,5 @@
 /**
  * Purpose: Express router definitions for score recording and retrieval endpoints
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const express = require('express');

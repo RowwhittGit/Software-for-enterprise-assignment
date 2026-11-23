@@ -1,6 +1,5 @@
 /**
- * Purpose: Application entry point — connects to MongoDB Atlas and starts the HTTP server
- * AI-assisted (Antigravity) — reviewed by student
+ * Purpose: Application entry point â€” connects to MongoDB Atlas and starts the HTTP server
  */
 
 const config = require('./src/config/env');

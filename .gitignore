@@ -1,5 +1,4 @@
 # Purpose: Git ignore file for excluding node_modules, env files, logs, and OS files
-# AI-assisted (Antigravity) — reviewed by student
 
 # Dependencies
 node_modules/

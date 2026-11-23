@@ -1,6 +1,5 @@
 /**
  * Purpose: Express application configuration, middleware, and route mounting
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const express = require('express');
@@ -8,6 +7,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth.routes');
 const puzzleRoutes = require('./routes/puzzle.routes');
+const gameRoutes = require('./routes/game.routes');
 const scoreRoutes = require('./routes/score.routes');
 const { getLeaderboard } = require('./controllers/score.controller');
 
@@ -30,6 +30,9 @@ app.use('/api/auth', authRoutes);
 
 // Mount puzzle API routes
 app.use('/api/puzzle', puzzleRoutes);
+
+// Mount game session API routes
+app.use('/api/game', gameRoutes);
 
 // Mount scores API routes
 app.use('/api/scores', scoreRoutes);

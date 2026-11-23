@@ -1,6 +1,5 @@
 /**
  * Purpose: Game Score model schema definition for tracking player game results and leaderboard
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');
@@ -23,6 +22,12 @@ const scoreSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Correct answers count is required'],
     min: [0, 'Correct answers count cannot be negative'],
+  },
+  // Total number of puzzles attempted in this session (defaults to 0 for backward compatibility)
+  puzzlesAttempted: {
+    type: Number,
+    default: 0,
+    min: [0, 'Puzzles attempted count cannot be negative'],
   },
   // Game difficulty selected by the user
   difficulty: {

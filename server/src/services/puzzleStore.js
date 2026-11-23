@@ -1,6 +1,5 @@
 /**
  * Purpose: In-memory store for active puzzle answers with automatic expiry
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const crypto = require('crypto');
@@ -45,9 +44,10 @@ if (cleanupInterval.unref) {
  *
  * @param {number} solution - Correct answer from Banana API
  * @param {string} difficulty - 'easy', 'medium', or 'hard'
+ * @param {string|null} [sessionId] - Optional associated game session ID
  * @returns {{ puzzleId: string, timeLimit: number }}
  */
-function savePuzzle(solution, difficulty = 'easy') {
+function savePuzzle(solution, difficulty = 'easy', sessionId = null) {
   const puzzleId = crypto.randomUUID();
   const timeLimit = DIFFICULTY_TIMES[difficulty.toLowerCase()] || DIFFICULTY_TIMES.easy;
 
@@ -56,6 +56,7 @@ function savePuzzle(solution, difficulty = 'easy') {
     difficulty: difficulty.toLowerCase(),
     timeLimit,
     issuedAt: Date.now(),
+    sessionId: sessionId ? String(sessionId) : null,
   });
 
   return { puzzleId, timeLimit };

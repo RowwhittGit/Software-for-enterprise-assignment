@@ -1,6 +1,5 @@
 /**
  * Purpose: Puzzle controller handlers for game logic
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const bananaService = require('../services/bananaService');

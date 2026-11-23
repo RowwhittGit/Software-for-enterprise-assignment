@@ -1,6 +1,5 @@
 /*
   Purpose: Application styling for layout, components, and animations
-  AI-assisted (Antigravity) — reviewed by student
 */
 
 :root {
@@ -767,4 +766,40 @@ body {
   font-weight: 700;
   color: #b45309;
   font-size: 0.9rem;
+}
+
+/* Toast Notifications */
+.game-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background-color: var(--bg-charcoal, #1e293b);
+  color: #ffffff;
+  padding: 0.85rem 1.5rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.game-toast.toast-visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.game-toast.toast-error {
+  border-left: 4px solid var(--danger, #ef4444);
+  background-color: #1e293b;
+}
+
+.game-toast.toast-success {
+  border-left: 4px solid var(--accent, #10b981);
+  background-color: #1e293b;
 }

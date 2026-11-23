@@ -1,6 +1,5 @@
 /**
  * Purpose: User model schema definition for player identity and account management
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');
