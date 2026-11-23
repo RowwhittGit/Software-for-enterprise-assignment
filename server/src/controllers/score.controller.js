@@ -146,9 +146,84 @@ function streamLeaderboard(req, res) {
   });
 }
 
+/**
+ * Retrieves aggregate statistics for the authenticated player:
+ * total games, best score by difficulty, overall accuracy, average score, and recent 10 games.
+ * GET /api/scores/me/stats
+ */
+async function getMyStats(req, res) {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User is not authenticated' });
+    }
+
+    const user = await User.findById(userId).select('username createdAt highScore');
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    // Retrieve all scores for this player ordered by newest first
+    const allScores = await Score.find({ user: userId }).sort({ createdAt: -1 }).lean();
+
+    const bestScoreByDifficulty = {
+      easy: null,
+      medium: null,
+      hard: null,
+    };
+
+    let totalCorrect = 0;
+    let totalAttempted = 0;
+    let totalScore = 0;
+
+    for (const s of allScores) {
+      // Track best score per difficulty
+      if (s.difficulty && Object.prototype.hasOwnProperty.call(bestScoreByDifficulty, s.difficulty)) {
+        if (bestScoreByDifficulty[s.difficulty] === null || s.score > bestScoreByDifficulty[s.difficulty]) {
+          bestScoreByDifficulty[s.difficulty] = s.score;
+        }
+      }
+
+      totalCorrect += s.correctAnswers || 0;
+      totalAttempted += s.puzzlesAttempted || 0;
+      totalScore += s.score || 0;
+    }
+
+    // Treat legacy documents with puzzlesAttempted = 0 safely without division by zero
+    const safeAttempted = Math.max(totalAttempted, totalCorrect);
+    const accuracy = safeAttempted > 0 ? Math.round((totalCorrect / safeAttempted) * 100) : 0;
+    const averageScore = allScores.length > 0 ? Math.round(totalScore / allScores.length) : 0;
+
+    // Recent 10 games for match history list
+    const recentGames = allScores.slice(0, 10).map((s) => ({
+      id: s._id,
+      score: s.score,
+      correctAnswers: s.correctAnswers,
+      puzzlesAttempted: s.puzzlesAttempted || 0,
+      difficulty: s.difficulty,
+      createdAt: s.createdAt,
+    }));
+
+    return res.status(200).json({
+      username: user.username,
+      memberSince: user.createdAt,
+      personalBest: user.highScore || 0,
+      totalGames: allScores.length,
+      bestScoreByDifficulty,
+      accuracy,
+      averageScore,
+      recentGames,
+    });
+  } catch (error) {
+    console.error('Error fetching player stats:', error.message);
+    return res.status(500).json({ error: 'Internal server error while fetching player stats' });
+  }
+}
+
 module.exports = {
   saveScore,
   getMyScores,
+  getMyStats,
   fetchTopLeaderboard,
   getLeaderboard,
   streamLeaderboard,

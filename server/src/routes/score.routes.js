@@ -3,13 +3,16 @@
  */
 
 const express = require('express');
-const { saveScore, getMyScores, getLeaderboard } = require('../controllers/score.controller');
+const { saveScore, getMyScores, getMyStats, getLeaderboard } = require('../controllers/score.controller');
 const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
 // Record a completed game score (protected by JWT authentication)
 router.post('/', requireAuth, saveScore);
+
+// Retrieve aggregate player statistics and recent games (protected by JWT authentication)
+router.get('/me/stats', requireAuth, getMyStats);
 
 // Retrieve personal high score and recent game history (protected by JWT authentication)
 router.get('/me', requireAuth, getMyScores);
