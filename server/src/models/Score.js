@@ -48,6 +48,9 @@ const scoreSchema = new mongoose.Schema({
 // Descending index on score for efficient retrieval of the global leaderboard (top scores)
 scoreSchema.index({ score: -1 });
 
+// Compound index on user and score for per-player-best aggregation and stats
+scoreSchema.index({ user: 1, score: -1 });
+
 const Score = mongoose.model('Score', scoreSchema);
 
 module.exports = Score;

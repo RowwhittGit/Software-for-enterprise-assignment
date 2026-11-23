@@ -58,20 +58,51 @@ async function getMyScores(req, res) {
 }
 
 /**
- * Shared database query for top 10 leaderboard entries
+ * Shared database query for top 10 per-player-best leaderboard entries.
+ * Uses an aggregation pipeline so each player appears only once with their highest score.
  * @returns {Promise<Array>}
  */
 async function fetchTopLeaderboard() {
-  const scores = await Score.find()
-    .sort({ score: -1, createdAt: 1 })
-    .limit(10)
-    .populate('user', 'username')
-    .lean();
+  const scores = await Score.aggregate([
+    // 1. Sort all scores descending by score, breaking ties by earliest timestamp
+    { $sort: { score: -1, createdAt: 1 } },
+    // 2. Group by user, preserving the highest score per user
+    {
+      $group: {
+        _id: '$user',
+        scoreId: { $first: '$_id' },
+        user: { $first: '$user' },
+        score: { $first: '$score' },
+        correctAnswers: { $first: '$correctAnswers' },
+        difficulty: { $first: '$difficulty' },
+        createdAt: { $first: '$createdAt' },
+      },
+    },
+    // 3. Sort unique player best scores descending
+    { $sort: { score: -1, createdAt: 1 } },
+    // 4. Limit to top 10 unique players
+    { $limit: 10 },
+    // 5. Look up player username from users collection
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userData',
+      },
+    },
+    {
+      $unwind: {
+        path: '$userData',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ]);
 
   return scores.map((entry, index) => ({
     rank: index + 1,
-    id: entry._id,
-    username: entry.user && entry.user.username ? entry.user.username : 'Anonymous',
+    id: entry.scoreId,
+    username: entry.userData && entry.userData.username ? entry.userData.username : 'Anonymous',
     score: entry.score,
     correctAnswers: entry.correctAnswers,
     difficulty: entry.difficulty,
