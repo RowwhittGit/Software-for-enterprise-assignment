@@ -4,6 +4,7 @@
 
 // Game state variables
 let currentDifficulty = 'easy';
+let currentSessionId = null;
 let currentPuzzleId = null;
 let isGameActive = false;
 let lives = 3;
@@ -70,37 +71,106 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Initializes and starts a new game session with selected difficulty, 3 lives, and reset score
+ * Displays a non-intrusive floating toast notification to the user
  */
-function startGame() {
+function showToast(message, type = 'error') {
+  let toast = document.getElementById('game-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'game-toast';
+    toast.className = 'game-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.textContent = message;
+  toast.className = `game-toast toast-visible toast-${type}`;
+
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove('toast-visible');
+  }, 3500);
+}
+
+/**
+ * Resets the UI back to the initial start screen (e.g. after session expiration)
+ */
+function resetToStartScreen() {
+  if (window.Timer) {
+    window.Timer.stopTimer();
+  }
+  isGameActive = false;
+  isRoundProcessing = false;
+  currentSessionId = null;
+  currentPuzzleId = null;
+
+  const startScreen = document.getElementById('start-screen');
+  const playArea = document.getElementById('play-area');
+  const gameOverScreen = document.getElementById('game-over-screen');
+
+  if (playArea) playArea.classList.add('hidden');
+  if (gameOverScreen) gameOverScreen.classList.add('hidden');
+  if (startScreen) startScreen.classList.remove('hidden');
+  hideFeedback();
+}
+
+/**
+ * Initializes and starts a new server-managed game session
+ */
+async function startGame() {
   const startScreen = document.getElementById('start-screen');
   const playArea = document.getElementById('play-area');
   const gameOverScreen = document.getElementById('game-over-screen');
   const difficultyBadge = document.getElementById('active-difficulty-badge');
+  const btnStart = document.getElementById('btn-start-game');
+  const btnPlayAgain = document.getElementById('btn-play-again');
 
-  if (startScreen) startScreen.classList.add('hidden');
-  if (gameOverScreen) gameOverScreen.classList.add('hidden');
-  if (playArea) playArea.classList.remove('hidden');
-
-  // Reset timer module and HUD indicators
-  if (window.Timer) {
-    window.Timer.resetTimer();
+  if (!window.API) {
+    showToast('Application client error. Please refresh.', 'error');
+    return;
   }
-  const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
-  if (difficultyBadge) difficultyBadge.textContent = config.label;
-  updateTimerDisplay(config.timeLimit);
 
-  // Reset player session state
-  lives = 3;
-  currentScore = 0;
-  correctAnswersCount = 0;
-  isRoundProcessing = false;
-  updateLivesDisplay();
-  updateScoreDisplay();
-  hideFeedback();
-  isGameActive = true;
+  if (btnStart) btnStart.disabled = true;
+  if (btnPlayAgain) btnPlayAgain.disabled = true;
 
-  fetchAndDisplayPuzzle();
+  try {
+    // Request the server to create and initialize the game session
+    const sessionData = await window.API.jsonFetch('/api/game/start', {
+      method: 'POST',
+      body: { difficulty: currentDifficulty },
+    });
+
+    currentSessionId = sessionData.sessionId;
+    lives = sessionData.lives;
+    currentScore = sessionData.score;
+    correctAnswersCount = 0;
+    isRoundProcessing = false;
+    isGameActive = true;
+
+    if (startScreen) startScreen.classList.add('hidden');
+    if (gameOverScreen) gameOverScreen.classList.add('hidden');
+    if (playArea) playArea.classList.remove('hidden');
+
+    // Reset timer and HUD indicators
+    if (window.Timer) {
+      window.Timer.resetTimer();
+    }
+    const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
+    if (difficultyBadge) difficultyBadge.textContent = config.label;
+    updateTimerDisplay(config.timeLimit);
+
+    updateLivesDisplay();
+    updateScoreDisplay();
+    hideFeedback();
+
+    await fetchAndDisplayPuzzle();
+  } catch (err) {
+    console.error('Failed to start game session:', err);
+    showToast(err.message || 'Failed to start game session. Please try again.', 'error');
+    resetToStartScreen();
+  } finally {
+    if (btnStart) btnStart.disabled = false;
+    if (btnPlayAgain) btnPlayAgain.disabled = false;
+  }
 }
 
 /**
@@ -110,8 +180,8 @@ function updateLivesDisplay() {
   const livesDisplay = document.getElementById('lives-display');
   if (!livesDisplay) return;
 
-  const fullHearts = 'â¤ï¸'.repeat(Math.max(0, lives));
-  const emptyHearts = 'ðŸ¤'.repeat(Math.max(0, 3 - lives));
+  const fullHearts = '❤️'.repeat(Math.max(0, lives));
+  const emptyHearts = '🤍'.repeat(Math.max(0, 3 - lives));
   livesDisplay.textContent = fullHearts + emptyHearts;
 }
 
@@ -160,7 +230,7 @@ function handleRoundTimeout() {
   lives--;
   updateLivesDisplay();
 
-  showFeedback("Time's up! â° (-1 life)", 'wrong');
+  showFeedback("Time's up! ⏰ (-1 life)", 'wrong');
 
   if (lives <= 0) {
     setTimeout(() => {
@@ -175,10 +245,14 @@ function handleRoundTimeout() {
 }
 
 /**
- * Fetches a visual math equation puzzle from the server /api/puzzle endpoint
- * and renders it inside the game arena.
+ * Fetches a visual puzzle for the active game session and renders it inside the game arena.
  */
 async function fetchAndDisplayPuzzle() {
+  if (!currentSessionId) {
+    resetToStartScreen();
+    return;
+  }
+
   const puzzleSpinner = document.getElementById('puzzle-loading');
   const puzzleImg = document.getElementById('puzzle-image');
   const answerInput = document.getElementById('answer-input');
@@ -193,17 +267,17 @@ async function fetchAndDisplayPuzzle() {
   }
   if (submitBtn) submitBtn.disabled = true;
 
-  // Stop any active timer and reset HUD display to starting time limit
+  // Stop active timer
   if (window.Timer) {
     window.Timer.stopTimer();
   }
-  const roundConfig = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
-  updateTimerDisplay(roundConfig.timeLimit);
 
   try {
-    const data = await window.API.jsonFetch(`/api/puzzle?difficulty=${currentDifficulty}`);
+    const data = await window.API.jsonFetch(`/api/game/${currentSessionId}/puzzle`);
 
     currentPuzzleId = data.puzzleId;
+    const timeLimit = data.timeLimit;
+    updateTimerDisplay(timeLimit);
 
     if (puzzleImg) {
       puzzleImg.onload = () => {
@@ -216,12 +290,11 @@ async function fetchAndDisplayPuzzle() {
         }
         if (submitBtn) submitBtn.disabled = false;
 
-        // Record timestamp and start round countdown timer
+        // Record timestamp and start countdown timer with server timeLimit
         puzzleStartTime = Date.now();
-        const config = DIFFICULTY_CONFIG[currentDifficulty] || DIFFICULTY_CONFIG.easy;
         if (window.Timer) {
           window.Timer.startTimer(
-            config.timeLimit,
+            timeLimit,
             (secondsLeft) => updateTimerDisplay(secondsLeft),
             () => handleRoundTimeout()
           );
@@ -234,6 +307,13 @@ async function fetchAndDisplayPuzzle() {
     if (window.Timer) {
       window.Timer.stopTimer();
     }
+
+    if (err.status === 404 || err.status === 400) {
+      showToast('Game session expired or invalid. Returning to menu.', 'error');
+      resetToStartScreen();
+      return;
+    }
+
     if (puzzleSpinner) {
       puzzleSpinner.textContent = 'Failed to load puzzle. Please check your connection and refresh.';
     }
@@ -299,7 +379,7 @@ async function handleAnswerSubmit() {
       currentScore += earned;
       updateScoreDisplay();
 
-      showFeedback(`Correct! +${earned} pts ðŸŽ‰`, 'correct');
+      showFeedback(`Correct! +${earned} pts 🎉`, 'correct');
 
       setTimeout(() => {
         hideFeedback();
@@ -310,7 +390,7 @@ async function handleAnswerSubmit() {
       lives--;
       updateLivesDisplay();
 
-      const reason = result.timedOut ? "Time's up! â° (-1 life)" : 'Wrong answer! âŒ (-1 life)';
+      const reason = result.timedOut ? "Time's up! ⏰ (-1 life)" : 'Wrong answer! ❌ (-1 life)';
       showFeedback(reason, 'wrong');
 
       if (lives <= 0) {
@@ -395,7 +475,7 @@ async function submitGameScore() {
 
     if (result && result.isNewHighScore) {
       if (highScoreAlert) {
-        highScoreAlert.textContent = `ðŸŽ‰ New Personal Best: ${result.highScore} pts!`;
+        highScoreAlert.textContent = `🎉 New Personal Best: ${result.highScore} pts!`;
         highScoreAlert.classList.remove('hidden');
       }
       if (navHighScore) {
@@ -499,6 +579,8 @@ window.Game = {
   submitGameScore,
   loadUserScores,
   showFeedback,
+  showToast,
+  resetToStartScreen,
   getDifficulty: () => currentDifficulty,
   getScore: () => currentScore,
   getLives: () => lives,
