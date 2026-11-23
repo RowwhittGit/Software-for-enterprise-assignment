@@ -9,7 +9,7 @@ const authRoutes = require('./routes/auth.routes');
 const puzzleRoutes = require('./routes/puzzle.routes');
 const gameRoutes = require('./routes/game.routes');
 const scoreRoutes = require('./routes/score.routes');
-const { getLeaderboard } = require('./controllers/score.controller');
+const leaderboardRoutes = require('./routes/leaderboard.routes');
 
 const app = express();
 
@@ -37,8 +37,8 @@ app.use('/api/game', gameRoutes);
 // Mount scores API routes
 app.use('/api/scores', scoreRoutes);
 
-// Public leaderboard endpoint (accessible without login)
-app.get('/api/leaderboard', getLeaderboard);
+// Public leaderboard API routes and real-time SSE stream
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check endpoint to verify server status without touching the database
 app.get('/api/health', (req, res) => {
