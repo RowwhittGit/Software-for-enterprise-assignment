@@ -803,3 +803,102 @@ body {
   border-left: 4px solid var(--accent, #10b981);
   background-color: #1e293b;
 }
+
+/* Real-Time Live Leaderboard Indicator */
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.leaderboard-header h3 {
+  margin: 0;
+}
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.live-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.live-indicator-live {
+  color: #10b981;
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.live-indicator-live .live-indicator-dot {
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: liveDotPulse 2s infinite ease-in-out;
+}
+
+.live-indicator-reconnecting {
+  color: #94a3b8;
+  background-color: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.live-indicator-reconnecting .live-indicator-dot {
+  background-color: #94a3b8;
+}
+
+.live-indicator-connecting {
+  color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.live-indicator-connecting .live-indicator-dot {
+  background-color: #f59e0b;
+  animation: liveDotPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes liveDotPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Row highlight animation for leaderboard real-time changes */
+@keyframes rowUpdatedPulse {
+  0% {
+    background-color: rgba(245, 158, 11, 0.35);
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: rgba(245, 158, 11, 0.18);
+  }
+  100% {
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
+.leaderboard-item.row-updated {
+  animation: rowUpdatedPulse 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+

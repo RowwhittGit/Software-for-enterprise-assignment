@@ -4,6 +4,7 @@
 
 const Score = require('../models/Score');
 const User = require('../models/User');
+const leaderboardEvents = require('../services/leaderboardEvents');
 
 /**
  * Rejects direct score submissions to prevent client tampering.
@@ -57,28 +58,34 @@ async function getMyScores(req, res) {
 }
 
 /**
+ * Shared database query for top 10 leaderboard entries
+ * @returns {Promise<Array>}
+ */
+async function fetchTopLeaderboard() {
+  const scores = await Score.find()
+    .sort({ score: -1, createdAt: 1 })
+    .limit(10)
+    .populate('user', 'username')
+    .lean();
+
+  return scores.map((entry, index) => ({
+    rank: index + 1,
+    id: entry._id,
+    username: entry.user && entry.user.username ? entry.user.username : 'Anonymous',
+    score: entry.score,
+    correctAnswers: entry.correctAnswers,
+    difficulty: entry.difficulty,
+    createdAt: entry.createdAt,
+  }));
+}
+
+/**
  * Retrieves the global top 10 scores with associated player usernames
  * GET /api/leaderboard (Public, no authentication required)
  */
 async function getLeaderboard(req, res) {
   try {
-    // Find top 10 highest scores across all users, sorted descending
-    const scores = await Score.find()
-      .sort({ score: -1, createdAt: 1 })
-      .limit(10)
-      .populate('user', 'username')
-      .lean();
-
-    const leaderboard = scores.map((entry, index) => ({
-      rank: index + 1,
-      id: entry._id,
-      username: entry.user && entry.user.username ? entry.user.username : 'Anonymous',
-      score: entry.score,
-      correctAnswers: entry.correctAnswers,
-      difficulty: entry.difficulty,
-      createdAt: entry.createdAt,
-    }));
-
+    const leaderboard = await fetchTopLeaderboard();
     return res.status(200).json({
       leaderboard,
     });
@@ -88,8 +95,30 @@ async function getLeaderboard(req, res) {
   }
 }
 
+/**
+ * Server-Sent Events (SSE) stream for real-time leaderboard updates
+ * GET /api/leaderboard/stream (Public, no authentication required)
+ */
+function streamLeaderboard(req, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders();
+  }
+
+  leaderboardEvents.addClient(res);
+
+  req.on('close', () => {
+    leaderboardEvents.removeClient(res);
+  });
+}
+
 module.exports = {
   saveScore,
   getMyScores,
+  fetchTopLeaderboard,
   getLeaderboard,
+  streamLeaderboard,
 };

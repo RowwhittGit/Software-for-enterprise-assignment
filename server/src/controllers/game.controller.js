@@ -9,6 +9,8 @@ const User = require('../models/User');
 const bananaService = require('../services/bananaService');
 const puzzleStore = require('../services/puzzleStore');
 const scoringService = require('../services/scoring');
+const leaderboardEvents = require('../services/leaderboardEvents');
+const { fetchTopLeaderboard } = require('./score.controller');
 
 const ALLOWED_DIFFICULTIES = ['easy', 'medium', 'hard'];
 
@@ -295,6 +297,14 @@ async function finishGameSession(req, res) {
 
     // Delete completed game session from database
     await GameSession.findByIdAndDelete(session._id);
+
+    // Broadcast updated top-10 leaderboard to all connected SSE clients
+    try {
+      const updatedLeaderboard = await fetchTopLeaderboard();
+      leaderboardEvents.broadcast('leaderboard', { leaderboard: updatedLeaderboard });
+    } catch (broadcastErr) {
+      console.warn('Failed to broadcast live leaderboard update:', broadcastErr.message);
+    }
 
     return res.status(200).json({
       score: session.score,
