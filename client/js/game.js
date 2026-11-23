@@ -10,14 +10,13 @@ let isGameActive = false;
 let lives = 3;
 let currentScore = 0;
 let correctAnswersCount = 0;
-let puzzleStartTime = null;
 let isRoundProcessing = false;
 
-// Difficulty configuration (time limit in seconds and score multiplier)
+// Difficulty configuration (time limit in seconds and label)
 const DIFFICULTY_CONFIG = {
-  easy: { timeLimit: 30, multiplier: 1, label: 'Easy' },
-  medium: { timeLimit: 20, multiplier: 1.5, label: 'Medium' },
-  hard: { timeLimit: 10, multiplier: 2, label: 'Hard' },
+  easy: { timeLimit: 30, label: 'Easy' },
+  medium: { timeLimit: 20, label: 'Medium' },
+  hard: { timeLimit: 10, label: 'Hard' },
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -322,8 +321,7 @@ async function fetchAndDisplayPuzzle() {
         }
         if (submitBtn) submitBtn.disabled = false;
 
-        // Record timestamp and start countdown timer with server timeLimit
-        puzzleStartTime = Date.now();
+        // Start countdown timer with server timeLimit
         if (window.Timer) {
           window.Timer.startTimer(
             timeLimit,
