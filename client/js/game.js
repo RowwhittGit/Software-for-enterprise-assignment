@@ -1,6 +1,5 @@
 /**
  * Purpose: Core game loop and state management with difficulty selection, lives, and scoring
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 // Game state variables
@@ -111,8 +110,8 @@ function updateLivesDisplay() {
   const livesDisplay = document.getElementById('lives-display');
   if (!livesDisplay) return;
 
-  const fullHearts = '❤️'.repeat(Math.max(0, lives));
-  const emptyHearts = '🤍'.repeat(Math.max(0, 3 - lives));
+  const fullHearts = 'â¤ï¸'.repeat(Math.max(0, lives));
+  const emptyHearts = 'ðŸ¤'.repeat(Math.max(0, 3 - lives));
   livesDisplay.textContent = fullHearts + emptyHearts;
 }
 
@@ -161,7 +160,7 @@ function handleRoundTimeout() {
   lives--;
   updateLivesDisplay();
 
-  showFeedback("Time's up! ⏰ (-1 life)", 'wrong');
+  showFeedback("Time's up! â° (-1 life)", 'wrong');
 
   if (lives <= 0) {
     setTimeout(() => {
@@ -300,7 +299,7 @@ async function handleAnswerSubmit() {
       currentScore += earned;
       updateScoreDisplay();
 
-      showFeedback(`Correct! +${earned} pts 🎉`, 'correct');
+      showFeedback(`Correct! +${earned} pts ðŸŽ‰`, 'correct');
 
       setTimeout(() => {
         hideFeedback();
@@ -311,7 +310,7 @@ async function handleAnswerSubmit() {
       lives--;
       updateLivesDisplay();
 
-      const reason = result.timedOut ? "Time's up! ⏰ (-1 life)" : 'Wrong answer! ❌ (-1 life)';
+      const reason = result.timedOut ? "Time's up! â° (-1 life)" : 'Wrong answer! âŒ (-1 life)';
       showFeedback(reason, 'wrong');
 
       if (lives <= 0) {
@@ -396,7 +395,7 @@ async function submitGameScore() {
 
     if (result && result.isNewHighScore) {
       if (highScoreAlert) {
-        highScoreAlert.textContent = `🎉 New Personal Best: ${result.highScore} pts!`;
+        highScoreAlert.textContent = `ðŸŽ‰ New Personal Best: ${result.highScore} pts!`;
         highScoreAlert.classList.remove('hidden');
       }
       if (navHighScore) {

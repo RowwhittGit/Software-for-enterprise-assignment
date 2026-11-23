@@ -1,6 +1,5 @@
 /**
  * Purpose: Game session routing definition with authentication middleware
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const express = require('express');

@@ -1,6 +1,5 @@
 /**
  * Purpose: Service to interact with the external Banana API
- * AI-assisted (Antigravity) — reviewed by student
  * Source: Marc Conrad's Banana Puzzle API (https://marcconrad.com/uob/banana/doc.php)
  */
 

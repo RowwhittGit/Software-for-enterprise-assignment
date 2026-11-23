@@ -1,6 +1,5 @@
 /**
  * Purpose: Authentication controller handlers for player registration and login
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const bcrypt = require('bcryptjs');

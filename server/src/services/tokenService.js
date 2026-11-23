@@ -1,6 +1,5 @@
 /**
  * Purpose: Service for JWT access token and opaque refresh token management
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const crypto = require('crypto');

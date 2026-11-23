@@ -1,6 +1,5 @@
 /**
  * Purpose: Authentication middleware to verify JWT access token on protected routes
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const tokenService = require('../services/tokenService');

@@ -1,6 +1,5 @@
 /**
  * Purpose: Centralized scoring calculations for game puzzle completion
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 // Difficulty settings: time limit in seconds and score multiplier

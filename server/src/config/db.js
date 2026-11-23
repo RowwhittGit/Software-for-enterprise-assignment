@@ -1,6 +1,5 @@
 /**
  * Purpose: Database connection setup using Mongoose for MongoDB Atlas
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');

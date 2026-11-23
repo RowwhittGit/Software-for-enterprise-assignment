@@ -1,6 +1,5 @@
 /**
  * Purpose: Controller functions for saving game scores, viewing player history, and global leaderboard
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const Score = require('../models/Score');

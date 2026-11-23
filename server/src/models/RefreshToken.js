@@ -1,6 +1,5 @@
 /**
  * Purpose: RefreshToken model schema with TTL index for session management
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');

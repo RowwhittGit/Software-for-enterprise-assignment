@@ -1,6 +1,5 @@
 /**
  * Purpose: Authentication logic and UI event handling for login/registration and game session
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 document.addEventListener('DOMContentLoaded', () => {

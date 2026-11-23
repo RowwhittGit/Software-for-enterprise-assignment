@@ -1,6 +1,5 @@
 /**
  * Purpose: Express application configuration, middleware, and route mounting
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const express = require('express');

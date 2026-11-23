@@ -1,6 +1,5 @@
 /**
  * Purpose: Game controller handling server-authoritative sessions, puzzles, answers, and game completion
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');

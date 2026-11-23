@@ -1,6 +1,5 @@
 /**
  * Purpose: Leaderboard display and updates
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 /**
@@ -34,9 +33,9 @@ async function fetchAndRenderLeaderboard() {
 
         // Medal icons for podium ranks (1st, 2nd, 3rd)
         let rankDisplay = `#${entry.rank}`;
-        if (entry.rank === 1) rankDisplay = '🥇 1';
-        else if (entry.rank === 2) rankDisplay = '🥈 2';
-        else if (entry.rank === 3) rankDisplay = '🥉 3';
+        if (entry.rank === 1) rankDisplay = 'ðŸ¥‡ 1';
+        else if (entry.rank === 2) rankDisplay = 'ðŸ¥ˆ 2';
+        else if (entry.rank === 3) rankDisplay = 'ðŸ¥‰ 3';
 
         const diffCapitalized = entry.difficulty
           ? entry.difficulty.charAt(0).toUpperCase() + entry.difficulty.slice(1)

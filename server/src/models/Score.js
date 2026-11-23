@@ -1,6 +1,5 @@
 /**
  * Purpose: Game Score model schema definition for tracking player game results and leaderboard
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');

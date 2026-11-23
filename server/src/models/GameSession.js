@@ -1,6 +1,5 @@
 /**
  * Purpose: GameSession model schema for server-managed game state (lives, score, puzzles)
- * AI-assisted (Antigravity) — reviewed by student
  */
 
 const mongoose = require('mongoose');
