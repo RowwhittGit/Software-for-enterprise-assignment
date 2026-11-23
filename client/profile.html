@@ -1,0 +1,130 @@
+<!--
+  Purpose: Player profile page displaying account details, aggregate statistics, difficulty records, and game history
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Profile - Banana Math Quest</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/index.html" class="nav-brand" style="text-decoration: none; color: inherit;">
+        <span class="brand-icon">🍌</span>
+        <span class="brand-text">Banana Math Quest</span>
+      </a>
+
+      <div class="nav-user">
+        <a href="/index.html" class="btn btn-secondary btn-sm">Play Game</a>
+        <span class="user-greeting">Welcome, <strong id="nav-username">Player</strong></span>
+        <span class="user-high-score">Best: <strong id="nav-high-score">0</strong> pts</span>
+        <button id="btn-logout" class="btn btn-secondary btn-sm" type="button">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Profile Content Container -->
+  <main class="main-content">
+    <div class="profile-container">
+      <!-- Profile Header Card -->
+      <section class="card profile-header-card">
+        <div class="profile-header-main">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-info">
+            <h1 id="profile-username" class="profile-name">Loading...</h1>
+            <p id="profile-member-since" class="text-muted text-small">Member since ...</p>
+          </div>
+        </div>
+        <div class="profile-best-badge">
+          <span class="badge-label">Personal Best</span>
+          <span id="profile-personal-best" class="badge-value">0 pts</span>
+        </div>
+      </section>
+
+      <!-- Aggregate Performance Stats Grid -->
+      <section class="profile-section">
+        <h2 class="section-title">Career Statistics</h2>
+        <div class="stats-cards-grid">
+          <div class="stat-metric-card">
+            <span class="metric-icon">🎮</span>
+            <div class="metric-details">
+              <span class="metric-title">Total Games</span>
+              <span id="stat-total-games" class="metric-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-metric-card">
+            <span class="metric-icon">🎯</span>
+            <div class="metric-details">
+              <span class="metric-title">Accuracy</span>
+              <span id="stat-accuracy" class="metric-value">0%</span>
+            </div>
+          </div>
+
+          <div class="stat-metric-card">
+            <span class="metric-icon">⭐</span>
+            <div class="metric-details">
+              <span class="metric-title">Average Score</span>
+              <span id="stat-avg-score" class="metric-value">0 pts</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Best Score Per Difficulty -->
+      <section class="profile-section">
+        <h2 class="section-title">Best Score By Difficulty</h2>
+        <div class="diff-records-grid">
+          <div class="diff-record-card diff-card-easy">
+            <div class="diff-record-header">
+              <span class="badge badge-diff-easy">Easy</span>
+              <span class="diff-time-hint">30s per puzzle</span>
+            </div>
+            <div id="diff-best-easy" class="diff-record-score">—</div>
+          </div>
+
+          <div class="diff-record-card diff-card-medium">
+            <div class="diff-record-header">
+              <span class="badge badge-diff-medium">Medium</span>
+              <span class="diff-time-hint">20s per puzzle</span>
+            </div>
+            <div id="diff-best-medium" class="diff-record-score">—</div>
+          </div>
+
+          <div class="diff-record-card diff-card-hard">
+            <div class="diff-record-header">
+              <span class="badge badge-diff-hard">Hard</span>
+              <span class="diff-time-hint">10s per puzzle</span>
+            </div>
+            <div id="diff-best-hard" class="diff-record-score">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Match History List -->
+      <section class="profile-section">
+        <h2 class="section-title">Recent Matches (Last 10)</h2>
+        <div id="history-container" class="card history-card">
+          <div id="history-loading" class="text-center p-4">
+            <p class="text-muted">Loading your match history...</p>
+          </div>
+
+          <div id="history-empty" class="text-center p-4 hidden">
+            <p class="text-muted">No games played yet. Click "Play Game" above to start your first quest!</p>
+          </div>
+
+          <div id="history-list" class="history-list hidden"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Client-side logic -->
+  <script src="js/api.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
